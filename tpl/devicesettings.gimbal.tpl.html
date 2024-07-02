@@ -1,0 +1,113 @@
+<p id="gimbal_license_key_bad_message" class="option_title" style="background:red; color:white; padding:10px; display:none;">Bad gimbal license key</p>
+
+<p>For a camera without an own gimbal</p>
+
+<p class="option_title gray">Bluetooth gimbal model</p>
+<select id="btgimbal_model_option" class="option_el" style="width:250px; margin:5px;"></select>
+
+<p class="option_title gray" style="margin-top:20px;">Gimbal license key</p>
+<div><input type="text" id="btgimbal_license_textarea" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></div>
+
+<p class="option_title gray" style="margin-top:20px;">Gimbal bluetooth address</p>
+<div><input type="text" id="btgimbal_addr_textarea" style="width:100%; height:30px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></div>
+
+<p><input id="btgimbal_scan_button" type="button" value="Search BT device" style="background-color:transparent; color:white; padding:10px; border:1;"></p>
+<p id="scan_info_label" class="option_title hidden">Searching BT devices...</p>
+<div><select id="bt_devices_option" class="option_el hidden" style="padding:5px;"></select></div>
+
+<div><input id="btgimbal_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"></div>
+
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"gimbal","value":""}');
+	}
+
+	function GimbalConfigRequest() {
+		$("#btgimbal_addr_textarea").val('');
+		$("#btgimbal_license_textarea").val('');
+
+		var selected_index = $("#btgimbal_model_option").prop('selectedIndex');
+		sendStringCommand('{"cmd":"config_request","param":"gimbal_config","value":"' + selected_index + '"}');
+	}
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		/// Fill default values
+		for (var i = 0; i < gimbal_types_array.length; i++) {
+			$('#btgimbal_model_option').append($("<option></option>").attr("value", gimbal_types_array[i]).text(gimbal_types_array[i])); 
+		}
+
+		$("#btgimbal_save_button").on("click", function(e) {
+            var cmd = '{"cmd":"updateconfig","param":"bt-gimbal-device",';
+            cmd += '"value":"set",';
+            cmd += '"value2":"' + $("#btgimbal_model_option").prop('selectedIndex') + '",';
+            cmd += '"value3":"' + $("#btgimbal_addr_textarea").val() + '",';
+            cmd += '"value4":"' + $("#btgimbal_license_textarea").val() + '"';
+            cmd += '}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$("#btgimbal_scan_button").on("click", function(e) {
+			$("#scan_info_label").css("display", "block");
+			$("#bt_devices_option").css("display", "none");
+            var cmd = '{"cmd":"updateconfig","param":"bt-gimbal-device",';
+            cmd += '"value":"scan"';
+            cmd += '}';
+			sendStringCommand(cmd);
+		});
+
+		$('#bt_devices_option').on("change", function(e) {
+			$("#btgimbal_addr_textarea").val($(this).val());
+		});
+
+		$('#btgimbal_model_option').on("change", function(e) {
+			GimbalConfigRequest();
+		});
+
+	}
+
+	function ParseDeviceConfig(json) {
+		var config;
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			//alert(e);
+			return;
+		}
+
+		if (config.cmd == "config_answer") {
+			$("#btgimbal_addr_textarea").val('');
+			$("#btgimbal_license_textarea").val('');
+
+			$("#btgimbal_model_option").prop('selectedIndex', config.bt_gmb_type);
+
+			GimbalConfigRequest();
+		}
+
+		if (config.cmd == "gimbal_config") {
+			$("#btgimbal_addr_textarea").val(config.bt_gmb_addr);
+			$("#btgimbal_license_textarea").val(config.bt_gmb_license);
+			$("#btgimbal_model_option").prop('selectedIndex', config.bt_gmb_type);
+		}
+
+		if ((config.cmd == "btle") && (config.param == "scan")) {
+			$("#scan_info_label").css("display", "none");
+
+			$("#bt_devices_option").empty();
+			$("#bt_devices_option").append($("<option></option>").attr("value", '').text(''));
+			var items = config.value.split(';');
+			for (var i = 0; i < items.length; i++) {
+				if (items[i] === "") continue;
+				var item_parts = items[i].split(',');
+				$("#bt_devices_option").append($("<option></option>").attr("value", item_parts[0]).text(item_parts[0] + " " + item_parts[1]));
+			}
+			$("#bt_devices_option").css("display","block");
+		}
+	}
+</script>

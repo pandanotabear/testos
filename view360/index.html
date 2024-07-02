@@ -1,0 +1,24 @@
+<style>
+	html, body { width:100%; height:100%; margin:0; background-color:#000; }
+	#video_element { width:100%; height:100%; }
+</style>
+
+<video loop autoplay muted="muted" id="video_element" crossOrigin="anonymous" playsinline style="display:none;"></video>
+
+<script type="text/javascript" src="jquery.min.js"></script>
+<script type="text/javascript" src="jmuxer.min.js"></script>
+<script type="text/javascript" src="player.js?1"></script>
+<script type="text/javascript" src="three.min.js"></script>
+<script type="text/javascript" src="OrbitControls.js"></script>
+<script type="text/javascript" src="theta-view.js"></script>
+
+<script>
+
+	$(document).ready(function() {
+		const video = document.getElementById( 'video_element' );
+		video.play();
+
+		theta_view('video_element');
+	});
+
+</script>

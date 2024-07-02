@@ -1,0 +1,281 @@
+<p><span class="option_title"><input type="checkbox" id="am_config_enabled"><label for="am_config_enabled">Loop enabled</label></span></p>
+<p><span class="option_title"><input type="checkbox" id="am_config_photo_enabled"><label for="am_config_photo_enabled">Photo enabled</label></span></p>
+<p><span class="option_title"><input type="checkbox" id="am_config_smooth_enabled"><label for="am_config_smooth_enabled">Smooth mode</label></span></p>
+
+<p class="option_title gray">Smooth auto movement speed</p>
+<select id="am_config_speed_option" class="option_el" style="width:50px; margin:5px;">
+	<option>1</option>
+	<option>2</option>
+	<option>3</option>
+	<option>4</option>
+	<option>5</option>
+	<option>6</option>
+	<option>7</option>
+	<option>8</option>
+</select>
+
+<p>&nbsp;</p>
+<p><input id="am_add_button" type="button" value="Add position" style="padding:10px; background-color:transparent; color:white; border-width:1px;"></p>
+
+<br>
+
+<p class="option_title gray">Leave the field empty to keep the value unchanged. Only pan/tilt/roll available in Smooth mode</p>
+
+<div id="am_table_content"></div>
+
+<p><input id="am_save_button" type="button" value="Save settings" style="background-color:red; color:white; padding:10px; border:0;"></p>
+
+
+<script>
+	var am_json = [];
+
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"automovement"}');
+	}
+
+	function DeviceConfigInit() {
+
+		/// Fill default values
+
+		$('#am_save_button').on("click", function(e) {
+
+			var option_enabled = $("#am_config_enabled").prop('checked') ? "1" : "0";
+			var option_photo_enabled = $("#am_config_photo_enabled").prop('checked') ? "1" : "0";
+            var option_smooth = $("#am_config_smooth_enabled").prop('checked') ? "1" : "0";
+            var smooth_speed = $("#am_config_speed_option").prop('selectedIndex');
+
+			GetNewValues();
+
+			var am_new_list = "";
+			for (var i = 0; i < am_json.length; i++) {
+				if (am_json[i] == undefined) continue;
+				if (am_json[i] == null) continue;
+				am_new_list += am_json[i].pan + "," + am_json[i].tilt + "," + am_json[i].roll + "," + am_json[i].zoom + "," + am_json[i].ev + "," + am_json[i].afx + "," + am_json[i].afy + "," + am_json[i].mf + "," + am_json[i].delay + "," + (am_json[i].shot ? "1" : "0") + ";";
+			}
+
+			sendStringCommand('{"cmd":"updateconfig","param":"automovement","value":"params","value2":"' + option_enabled + '","value3":"' + am_new_list + '","value4":"' + option_smooth + '","value5":"' + smooth_speed + '","value6":"' + option_photo_enabled + '"}');
+			$(this).css('background-color','darkred');
+		});
+
+
+		$('#am_add_button').on("click", function(e) {
+			AmAdd();
+		});
+
+	}
+
+	function ParseDeviceConfig(json) {
+		//alert(json);
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+		$("#am_config_enabled").prop('checked', config.enabled == 1 ? 'checked' : '');
+		$("#am_config_photo_enabled").prop('checked', config.photo == 1 ? 'checked' : '');
+		$("#am_config_smooth_enabled").prop('checked', config.smooth == 1 ? 'checked' : '');
+		$("#am_config_speed_option").prop('selectedIndex', parseInt(config.smooth_speed));
+
+		ParseAutomovementList(config.list);
+	}
+
+
+	function ParseAutomovementList(list) {
+		am_json = [];
+		var am_list = list.split(';');
+		for (var i = 0; i < am_list.length; i++) {
+			if (am_list[i] == "") continue;
+			var am_parts = am_list[i].split(',');
+			am_json[i] = {};
+			am_json[i].pan = am_parts[0];
+			am_json[i].tilt = am_parts[1];
+			am_json[i].roll = am_parts[2];
+			am_json[i].zoom = am_parts[3];
+			am_json[i].ev = am_parts[4];
+			am_json[i].afx = am_parts[5];
+			am_json[i].afy = am_parts[6];
+			am_json[i].mf = am_parts[7];
+			am_json[i].delay = am_parts[8];
+			am_json[i].shot = am_parts[9] == 1 ? true : false;
+		}
+
+		MakeAutomovementTable(am_json);
+	}
+
+
+	function MakeAutomovementTable(list_json) {
+
+		var table_tpl = '<table id="am_table" border="0" cellspacing="0" cellpadding="2" style="font-size:12px; table-layout:fixed;">';
+		table_tpl += '<tr>';
+		table_tpl += '<td width="30"></td>';
+		table_tpl += '<td width="50">Pan</td>';
+		table_tpl += '<td width="50">Tilt</td>';
+		table_tpl += '<td width="50">Roll</td>';
+		table_tpl += '<td width="50">Zoom</td>';
+		table_tpl += '<td width="50">EV</td>';
+		table_tpl += '<td width="50">AFx</td>';
+		table_tpl += '<td width="50">AFy</td>';
+		table_tpl += '<td width="50">MF</td>';
+		table_tpl += '<td width="50">Delay</td>';
+		table_tpl += '<td width="40">Shot</td>';
+		table_tpl += '</tr>';
+		table_tpl += '{tr}';
+		table_tpl += '</table>';
+
+		var tr_tpl = '<tr id="am_tr{index}">';
+		tr_tpl += '<td>{am_id}</td>';
+		tr_tpl += '<td><input id="am_pan{id}" type="text" value="{am_pan}" style="width:50px; padding:2;"></td>';
+		tr_tpl += '<td><input id="am_tilt{id}" type="text" value="{am_tilt}" style="width:50px; padding:2;"></td>';
+		tr_tpl += '<td><input id="am_roll{id}" type="text" value="{am_roll}" style="width:50px; padding:2;"></td>';
+		tr_tpl += '<td><input id="am_zoom{id}" type="text" value="{am_zoom}" style="width:40px; padding:2;"></td>';
+		tr_tpl += '<td><input id="am_ev{id}" type="text" value="{am_ev}" style="width:40px; padding:2;"></td>';
+		tr_tpl += '<td><input id="am_afx{id}" type="text" value="{am_afx}" style="width:40px; padding:2;"></td>';
+		tr_tpl += '<td><input id="am_afy{id}" type="text" value="{am_afy}" style="width:40px; padding:2;"></td>';
+		tr_tpl += '<td><input id="am_mf{id}" type="text" value="{am_mf}" style="width:30px; padding:2;"></td>';
+		tr_tpl += '<td><input id="am_delay{id}" type="text" value="{am_delay}" style="width:30px; padding:2;"></td>';
+		tr_tpl += '<td><input id="am_shot{id}" type="checkbox" {am_shot_checked} style="width:40px; padding:2;"></td>';
+
+		tr_tpl += '<td><input class="am_move_btn" param="{id}" type="button" value="Move" style="padding:4;"></td>';
+		tr_tpl += '<td><input class="am_update_btn" param="{id}" type="button" value="Update" style="padding:4;"></td>';
+		tr_tpl += '<td><input class="am_del_btn" param="{id}" type="button" value="Del" style="padding:4;"></td>';
+		tr_tpl += '</tr>';
+
+		var content = table_tpl;
+		var channels_tr = "";
+
+		for (var i = 0; i < list_json.length; i++) {
+			if (list_json[i] == "") continue;
+
+			var am_item = list_json[i];
+
+			var re;
+			var tr_content = tr_tpl;
+
+			re = new RegExp('{id}', 'g');
+			tr_content = tr_content.replace(re, i);
+
+			re = new RegExp('{am_id}', 'g');
+			tr_content = tr_content.replace(re, i + 1);
+
+			re = new RegExp('{am_pan}', 'g');
+			tr_content = tr_content.replace(re, am_item.pan);
+
+			re = new RegExp('{am_tilt}', 'g');
+			tr_content = tr_content.replace(re, am_item.tilt);
+
+			re = new RegExp('{am_roll}', 'g');
+			tr_content = tr_content.replace(re, am_item.roll);
+
+			re = new RegExp('{am_zoom}', 'g');
+			tr_content = tr_content.replace(re, am_item.zoom);
+
+			re = new RegExp('{am_ev}', 'g');
+			tr_content = tr_content.replace(re, am_item.ev);
+
+			re = new RegExp('{am_afx}', 'g');
+			tr_content = tr_content.replace(re, am_item.afx);
+
+			re = new RegExp('{am_afy}', 'g');
+			tr_content = tr_content.replace(re, am_item.afy);
+
+			re = new RegExp('{am_delay}', 'g');
+			tr_content = tr_content.replace(re, am_item.delay);
+
+			re = new RegExp('{am_mf}', 'g');
+			tr_content = tr_content.replace(re, am_item.mf);
+
+			tr_content = tr_content.replace('{am_shot_checked}', am_item.shot ? "checked" : "");
+
+			channels_tr += tr_content;
+		}
+
+		content = content.replace('{tr}', channels_tr);
+
+		$("#am_table_content").html(content);
+
+
+		$(".am_move_btn").on("click", function(e) {
+			AmMove(this.getAttribute('param'));
+		});
+
+		$(".am_update_btn").on("click", function(e) {
+			AmUpdate(this.getAttribute('param'));
+		});
+
+		$(".am_del_btn").on("click", function(e) {
+			AmDelete(this.getAttribute('param'));
+		});
+	}
+
+
+	function GetNewValues() {
+		for (var i = 0; i < am_json.length; i++) {
+			am_json[i].pan = $("#am_pan" + i).val();
+			am_json[i].tilt = $("#am_tilt" + i).val();
+			am_json[i].roll = $("#am_roll" + i).val();
+			am_json[i].zoom = $("#am_zoom" + i).val();
+			am_json[i].ev = $("#am_ev" + i).val();
+			am_json[i].afx = $("#am_afx" + i).val();
+			am_json[i].afy = $("#am_afy" + i).val();
+			am_json[i].delay = $("#am_delay" + i).val();
+			am_json[i].mf = $("#am_mf" + i).val();
+			am_json[i].shot = $("#am_shot" + i).prop('checked');
+		}
+	}
+
+
+	function AmMove(id) {
+		sendStringCommand('{"cmd":"updateconfig","param":"automovement","value":"move","value2":"' + id + '","value3":""}');
+	}
+
+	function AmDelete(id) {
+		try {
+			am_json.splice(id, 1);
+			MakeAutomovementTable(am_json);
+		} catch (e) {}
+	}
+
+	function AmAdd() {
+		var newItem = {
+			pan: automovement_values.pan,
+			tilt: automovement_values.tilt,
+			roll: automovement_values.roll,
+			zoom: automovement_values.zoom,
+			ev: automovement_values.ev,
+			afx: automovement_values.afx == 0.5 ? 0 : automovement_values.afx,
+			afy: automovement_values.afy == 0.5 ? 0 : automovement_values.afy,
+			mf: automovement_values.mf,
+			delay: 0,
+			shot: false
+		};
+
+		am_json.push(newItem);
+
+		MakeAutomovementTable(am_json);
+	}
+
+	function AmUpdate(id) {
+		var item = am_json[id];
+
+		item.pan = automovement_values.pan;
+		item.tilt = automovement_values.tilt;
+		item.roll = automovement_values.roll;
+		item.zoom = automovement_values.zoom;
+		item.ev = automovement_values.ev;
+		item.afx = automovement_values.afx;
+		item.afy = automovement_values.afy;
+		item.mf = automovement_values.mf;
+
+		MakeAutomovementTable(am_json);
+	}
+
+</script>

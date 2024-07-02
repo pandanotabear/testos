@@ -1,0 +1,96 @@
+<div class="tab">
+	<button class="tablinks active" onclick="openTab(event, 'GimbalRC')">RC control</button>
+	<button class="tablinks" onclick="openTab(event, 'GimbalApp')">App control</button>
+</div>
+
+<div id="GimbalRC" class="tabcontent" style="display:block;">
+	<p class="option_title">Pan smooth <span id="rc_pan_smooth_text"></span></p>
+	<p><input id="rc_pan_smooth_slider" class="option_el" type="range" min="0" max="100" step="1" value="0" style="width:100%;"></p>
+
+	<p class="option_title">Tilt smooth <span id="rc_tilt_smooth_text"></span></p>
+	<p><input id="rc_tilt_smooth_slider" class="option_el" type="range" min="0" max="100" step="1" value="0" style="width:100%;"></p>
+
+	<p class="option_title">Roll smooth <span id="rc_roll_smooth_text"></span></p>
+	<p><input id="rc_roll_smooth_slider" class="option_el" type="range" min="0" max="100" step="1" value="0" style="width:100%;"></p>
+</div>
+
+<div id="GimbalApp" class="tabcontent">
+	<p class="option_title">Pan smooth <span id="app_pan_smooth_text"></span></p>
+	<p><input id="app_pan_smooth_slider" class="option_el" type="range" min="0" max="100" step="1" value="0" style="width:100%;"></p>
+
+	<p class="option_title">Tilt smooth <span id="app_tilt_smooth_text"></span></p>
+	<p><input id="app_tilt_smooth_slider" class="option_el" type="range" min="0" max="100" step="1" value="0" style="width:100%;"></p>
+
+	<p class="option_title">Roll smooth <span id="app_roll_smooth_text"></span></p>
+	<p><input id="app_roll_smooth_slider" class="option_el" type="range" min="0" max="100" step="1" value="0" style="width:100%;"></p>
+</div>
+
+<p><span class="option_title"><input type="checkbox" id="abs_movement_option"><label for="abs_movement_option">Absolute gimbal movement (if supported by gimbal)</label></span></p>
+<p><span class="option_title"><input type="checkbox" id="upsidedown_option"><label for="upsidedown_option">Upside down mount</label></span></p>
+
+<div><input id="gimbal_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"></div>
+
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"controls"}');
+	}
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		$('.option_el').on("change", function(e) {
+			switch ($(this).attr('id')) {
+				case "rc_pan_smooth_slider": $("#rc_pan_smooth_text").html($(this).val() + '%'); break;
+				case "rc_tilt_smooth_slider": $("#rc_tilt_smooth_text").html($(this).val() + '%'); break;
+				case "rc_roll_smooth_slider": $("#rc_roll_smooth_text").html($(this).val() + '%'); break;
+
+				case "app_pan_smooth_slider": $("#app_pan_smooth_text").html($(this).val() + '%'); break;
+				case "app_tilt_smooth_slider": $("#app_tilt_smooth_text").html($(this).val() + '%'); break;
+				case "app_roll_smooth_slider": $("#app_roll_smooth_text").html($(this).val() + '%'); break;
+			}
+		});
+
+
+		$("#gimbal_save_button").on("click", function(e) {
+            var cmd = '{"cmd":"updateconfig","param":"controls",';
+            cmd += '"value":"' + ($("#abs_movement_option").prop('checked') ? "1" : "0") + '",';
+            cmd += '"value2":"' + $("#rc_pan_smooth_slider").val() + '",';
+            cmd += '"value3":"' + $("#rc_tilt_smooth_slider").val() + '",';
+            cmd += '"value4":"' + $("#rc_roll_smooth_slider").val() + '",';
+            cmd += '"value5":"' + $("#app_pan_smooth_slider").val() + '",';
+            cmd += '"value6":"' + $("#app_tilt_smooth_slider").val() + '",';
+            cmd += '"value7":"' + $("#app_roll_smooth_slider").val() + '",';
+            cmd += '"value8":"' + ($("#upsidedown_option").prop('checked') ? "1" : "0") + '"';
+            cmd += '}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+	}
+
+	function ParseDeviceConfig(json) {
+		var config;
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			//alert(e);
+			return;
+		}
+
+		if (config.cmd == "config_answer") {
+   			$("#abs_movement_option").prop("checked", config.move_type);
+   			$("#upsidedown_option").prop("checked", config.upsidedown);
+			$("#rc_pan_smooth_slider").val(config.rc_pan).change();
+			$("#rc_tilt_smooth_slider").val(config.rc_tilt).change();
+			$("#rc_roll_smooth_slider").val(config.rc_roll).change();
+			$("#app_pan_smooth_slider").val(config.app_pan).change();
+			$("#app_tilt_smooth_slider").val(config.app_tilt).change();
+			$("#app_roll_smooth_slider").val(config.app_roll).change();
+		}
+
+	}
+</script>

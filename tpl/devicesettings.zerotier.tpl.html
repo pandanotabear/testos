@@ -1,0 +1,104 @@
+<p><span class="option_title"><input type="checkbox" id="zerotier_enabled"><label for="zerotier_enabled">Enable ZeroTier network</label></span></p>
+<p><span class="option_title"><input type="checkbox" id="autojoin_enabled"><label for="autojoin_enabled">Auto join ZeroTier network on start-up</label></span></p>
+
+<p><span class="option_title gray">Peer ID:</span> <span id="peer_id_field">Unknown</span> </p>
+
+<p class="option_title gray">Network ID</p>
+<div><input type="text" id="netid_field" style="width:100%; height:30px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></div>
+
+<p>
+<input id="join_button" type="button" value="Join" style="background-color:transparent; color:white; padding:10px; border-width:1px; width:150px;">
+<input id="leave_button" type="button" value="Leave" style="background-color:transparent; color:white; padding:10px; border-width:1px; width:150px;">
+</p>
+
+<div><textarea type="text" id="info_textarea" style="width:100%; height:150px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></textarea></div>
+
+
+<p><input id="zt_save_button" type="button" value="Save" style="background-color:red; color:white; padding:10px; border:0; width:100px;"></p>
+
+<p><input id="zt_erase_button" type="button" value="Erase secret" style="background-color:red; color:white; padding:10px; border:0; width:100px;"></p>
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"zerotier"}');
+	}
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		$('#zt_save_button').on("click", function(e) {
+			if (!confirm("Are you sure?")) return;
+
+			var cmd = '{"cmd":"updateconfig","param":"zerotier","value":"params","value2":"' + ($("#zerotier_enabled").prop('checked') ? 1 : 0) + '","value3":"' + ($("#autojoin_enabled").prop('checked') ? 1 : 0) + '","value4":"' + $("#netid_field").val() + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$('#zt_erase_button').on("click", function(e) {
+			if (!confirm("Do you really want to clear ZeroTier secret keys? It will cause new secret keys generation.")) return;
+			var cmd = '{"cmd":"updateconfig","param":"zerotier","value":"clear"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$('#join_button').on("click", function(e) {
+			if (!confirm("Are you sure?")) return;
+
+			var netid = $("#netid_field").val();
+			if (netid == '') {
+				alert("Empty Network ID field");
+				return;
+			}
+
+			var cmd = '{"cmd":"updateconfig","param":"zerotier","value":"join","value4":"' + netid + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$('#leave_button').on("click", function(e) {
+			if (!confirm("Are you sure?")) return;
+
+			var netid = $("#netid_field").val();
+			if (netid == '') {
+				alert("Empty Network ID field");
+				return;
+			}
+
+			var cmd = '{"cmd":"updateconfig","param":"zerotier","value":"leave","value4":"' + netid + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+	}
+
+	function ParseDeviceConfig(json) {
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		$("#zerotier_enabled").prop("checked", config.enabled);
+		$("#autojoin_enabled").prop("checked", config.autojoin);
+		$("#netid_field").val(config.netid);
+		$("#info_textarea").val(config.info.replaceAll("<br>", "\n") + "\n" + config.networks.replaceAll("<br>", "\n"));
+
+		var peer_id = "Unknown";
+		try {
+			var tmp = config.info.split(' ');
+			if (tmp[0] == "200" && tmp[1] == "info") {
+				peer_id = tmp[2];
+			}
+		} catch (e) { peer_id = "Unknown"; }
+
+		$("#peer_id_field").html(peer_id);
+	}
+
+</script>

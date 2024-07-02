@@ -1,0 +1,88 @@
+<div>
+<p><span class="option_title"><input type="checkbox" id="app2_enabled"><label for="app2_enabled">Enable</label></span></p>
+
+<p class="option_title gray">Secondary camera type</p>
+<select id="app2_type_option" class="option_el" style="width:250px; margin:5px;">
+	<option></option>
+	<option>DJI Goggles V1/V2</option>
+	<option>DJI Goggles2/Integra</option>
+</select>
+
+<br><br>
+
+<p class="option_title gray">Show video on</p>
+<select id="app2_showon_option" class="option_el" style="width:250px; margin:5px;">
+	<option></option>
+	<option>HDMI0</option>
+	<option>HDMI1</option>
+	<option>DSI</option>
+</select>
+
+<p><span class="option_title"><input type="checkbox" id="app2_fullscreen"><label for="app2_fullscreen">Show fullscreen</label></span></p>
+
+<p class="option_title gray" style="margin-top:20px;">Show in window (offset_x, offset_y, width, height). Example: 50,50,640,400</p>
+<div><input type="text" id="app2_winpos_textarea" style="width:100%; height:30px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></div>
+
+<p>&nbsp;</p>
+
+<p><input id="change_app2type_button" type="button" value="Save settings" style="background-color:red; color:white; padding:10px; border:0;"></p>
+</div>
+
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"secondarydevice"}');
+	}
+
+	function DeviceConfigInit() {
+
+		$('#change_app2type_button').on("click", function(e) {
+
+			var newIndex = $("#app2_type_option").prop('selectedIndex');
+			var newType = -1;
+			switch(newIndex) {
+				case 1: newType = APP_TYPE.APP_CS_DJI_FPV_GOGGLES; break;
+				case 2: newType = APP_TYPE.APP_CS_DJI_AVATA; break;
+			}
+
+			var enabled = $("#app2_enabled").prop('checked') ? "1" : "0";
+			var showon = $("#app2_showon_option").val();
+			var fullscreen = $("#app2_fullscreen").prop('checked') ? "1" : "0";
+			var winpos = $("#app2_winpos_textarea").val();
+
+			sendStringCommand('{"cmd":"updateconfig","param":"app2_type","value":"' + newType + '","value2":"' + enabled + '","value3":"' + showon + '","value4":"' + fullscreen + '","value5":"' + winpos + '"}');
+			$(this).css('background-color','darkred');
+		});
+	}
+
+	function ParseDeviceConfig(json) {
+		//alert(json);
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		var ind = 0;
+		switch(parseInt(config.app2_type)) {
+			case APP_TYPE.APP_CS_DJI_FPV_GOGGLES: ind = 1; break;
+			case APP_TYPE.APP_CS_DJI_AVATA: ind = 2; break;
+		}
+
+		$("#app2_type_option").prop('selectedIndex', ind);
+		$("#app2_enabled").prop('checked', config.app2_enabled == 1 ? "checked" : "");
+		$("#app2_showon_option").val(config.app2_showon);
+		$("#app2_fullscreen").prop('checked', config.app2_fullscreen == 1 ? "checked" : "");
+		$("#app2_winpos_textarea").val(config.app2_winpos);
+	}
+
+</script>

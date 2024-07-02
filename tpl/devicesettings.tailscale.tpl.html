@@ -1,0 +1,79 @@
+<p><span class="option_title"><input type="checkbox" id="tailscale_enabled"><label for="tailscale_enabled">Enable Tailscale network</label></span></p>
+
+<p><span class="option_title"><input type="checkbox" id="web_tailscale_enabled"><label for="web_tailscale_enabled">Enable Tailscale web interface</label></span>  <span><a id="local_web_link" href="#" target="_blank" style="text-decoration:underline;">Open settings page</a></span></p>
+
+<p><input id="ts_save_button" type="button" value="Save" style="background-color:red; color:white; padding:10px; border:0; width:100px;"></p>
+
+<div>	
+	<p><a href="https://login.tailscale.com/admin" target="_blank" style="text-decoration:underline;">Open global control page</a></p>
+</div>
+
+<hr/>
+
+<div>
+	<p>IP Addresses</p>
+	<div><textarea id="tailscale_ip_block" style="width:100%; height:50px; background-color:transparent; padding:5px; color:gray; border-width:0px;"></textarea></div>
+</div>
+
+<div>
+	<p>Hosts</p>
+	<div><textarea id="tailscale_status_block" style="width:100%; height:200px; background-color:transparent; padding:5px; color:gray; border-width:0px;"></textarea></div>
+</div>
+
+<div>
+	<p>Network</p>
+	<div><textarea id="tailscale_network_block" style="width:100%; height:200px; background-color:transparent; padding:5px; color:gray; border-width:0px;"></textarea></div>
+</div>
+
+<p><input id="ts_erase_button" type="button" value="Erase secret" style="background-color:red; color:white; padding:10px; border:0; width:100px;"></p>
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"tailscale"}');
+	}
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		$("#local_web_link").attr('href', location.protocol + '//' + location.host + ":8088");
+		$("#local_web_link").text(location.protocol + '//' + location.host + ":8088");
+
+		$('#ts_save_button').on("click", function(e) {
+			if (!confirm("Are you sure?")) return;
+
+			var cmd = '{"cmd":"updateconfig","param":"tailscale","value":"params","value2":"' + ($("#tailscale_enabled").prop('checked') ? 1 : 0) + '","value3":"' + ($("#web_tailscale_enabled").prop('checked') ? 1 : 0) + '","value4":""}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$('#ts_erase_button').on("click", function(e) {
+			if (!confirm("Do you really want to clear Tailscale secret keys? It will cause new secret keys generation.")) return;
+			var cmd = '{"cmd":"updateconfig","param":"tailscale","value":"clear"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+	}
+
+	function ParseDeviceConfig(json) {
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		$("#tailscale_enabled").prop("checked", config.enabled);
+		$("#web_tailscale_enabled").prop("checked", config.web);
+		$("#tailscale_ip_block").val(config.ip.replaceAll("<br>", "\n"));
+		$("#tailscale_status_block").val(config.status.replaceAll("<br>", "\n"));
+		$("#tailscale_network_block").val(config.netcheck.replaceAll("<br>", "\n"));
+	}
+
+</script>

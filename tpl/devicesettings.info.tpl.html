@@ -1,0 +1,187 @@
+<p><span class="option_title gray">Board model:</span> <span id="board_model"></span> </p>
+<p><span class="option_title gray">Firmware version:</span> <span id="app_version"></span></p>
+<p id="fwupdatemsg" style="color:red; display:none"></p> 
+
+<p class="option_title gray" style="margin-top:20px;">Device name</p>
+<div><input type="text" id="devicename_textarea" style="width:100%; height:30px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></div>
+
+<br><br>
+
+<div>
+<p class="option_title gray">Camera type</p>
+<select id="apptype_option" class="option_el" style="width:250px; margin:5px;"></select>
+
+<span id="goggles_params_area">
+	<br>
+	<span class="option_title"><input type="checkbox" id="allow_autodetection_enabled"><label for="allow_autodetection_enabled">Allow auto detection (experimental)</label></span>
+</span>
+
+<span id="djibt_params_area">
+	<p class="option_title gray" style="margin-top:20px;">Use camera with this name (turn on the camera and do search)</p>
+	<input type="text" id="djibt_device_name" style="width:100%; padding:5px; background-color:transparent; color:white;">
+
+	<p><input id="btcam_scan_button" type="button" value="Search for camera" style="background-color:transparent; color:white; padding:10px; border:1;"></p>
+	<p id="btscan_info_label" class="option_title hidden">Searching Bluetooth devices...</p>
+	<div><select id="bt_cams_option" class="option_el hidden" style="padding:5px; width:250px;"></select></div>
+</span>
+
+<p><input id="change_apptype_button" type="button" value="Save settings" style="background-color:red; color:white; padding:10px; border:0;"></p>
+</div>
+
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"info"}');
+	}
+
+	function BtInfoRequest(apptype) {
+		sendStringCommand('{"cmd":"config_request","param":"info","value":"btledevice","value2":"' + apptype + '"}');
+	}
+
+	
+	function DeviceConfigInit() {
+		/// Fill default values
+		for (var i = 0; i < app_types_array.length; i++) {
+			$('#apptype_option').append($("<option></option>").attr("value", app_types_array[i]).text(app_types_array[i] + '   (type ' + i + ')' )); 
+		}
+
+		$('#change_apptype_button').on("click", function(e) {
+
+			var type = $("#apptype_option").prop('selectedIndex');
+			var devname = $("#devicename_textarea").val();
+			var autodetection = $("#allow_autodetection_enabled").prop('checked') ? "1" : "0";
+
+			var tmp = $("#djibt_device_name").val().split(' ');
+			var btdevname = "";
+			var btdevmac = "";
+			try { btdevname = tmp[0]; } catch (e) {}
+			try { btdevmac = tmp[1]; } catch (e) {}
+
+			if (!confirm("Are you sure?")) return;
+
+			sendStringCommand('{"cmd":"updateconfig","param":"app_type","value":"' + type + '","value2":"' + devname + '","value3":"' + autodetection + '","value4":"' + btdevname + '","value5":"' + btdevmac + '"}');
+			$(this).css('background-color','darkred');
+		});
+
+		$('#apptype_option').on("change", function(e) {
+			CheckCurrentAppType();
+		});
+
+		$("#btcam_scan_button").on("click", function(e) {
+			$("#btscan_info_label").css("display", "block");
+			$("#bt_cams_option").css("display", "none");
+            var cmd = '{"cmd":"updateconfig","param":"bt-gimbal-device",';
+            cmd += '"value":"scan"';
+            cmd += '}';
+			sendStringCommand(cmd);
+		});
+
+		$('#bt_cams_option').on("change", function(e) {
+			$("#djibt_device_name").val($(this).val());
+		});
+	}
+
+	function ParseDeviceConfig(json) {
+		//console.log(json);
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if ((config.cmd == "btle") && (config.param == "scan")) {
+			$("#btscan_info_label").css("display", "none");
+
+			$("#bt_cams_option").empty();
+			$("#bt_cams_option").append($("<option></option>").attr("value", '').text(''));
+			var items = config.value.split(';');
+			for (var i = 0; i < items.length; i++) {
+				if (items[i] === "") continue;
+				var item_parts = items[i].split(',');
+				$("#bt_cams_option").append($("<option></option>").attr("value", item_parts[1] + " " + item_parts[0]).text(item_parts[1] + " " + item_parts[0]));
+			}
+			$("#bt_cams_option").css("display","block");
+		}
+
+		if (config.cmd == "config_answer") {
+
+			if (config.part == "btledevice") {
+				$("#djibt_device_name").val(config.bt_dev_name + ' ' + config.bt_dev_mac);
+			}
+
+			else {
+
+			$("#board_model").html(config.board_model);
+			$("#app_version").html(config.app_version);
+			$("#apptype_option").prop('selectedIndex', parseInt(config.app_type));
+			$("#devicename_textarea").val(config.device_name);
+			$("#allow_autodetection_enabled").prop('checked', config.app_type_autodetect == 1 ? "checked" : "");
+			$("#djibt_device_name").val(config.bt_dev_name + ' ' + config.bt_dev_mac);
+
+			CheckCurrentAppType();
+			CheckFwUpdate(config.app_version);
+			}
+		}
+	}
+
+	function CheckCurrentAppType() {
+		var index = $('#apptype_option').prop('selectedIndex');
+
+		switch(index) {
+			case APP_TYPE.APP_CS_DJI_FPV_GOGGLES:
+			case APP_TYPE.APP_CS_DJI_AVATA:
+				$('#goggles_params_area').css('display', 'block');
+			break;
+			default:
+				$('#goggles_params_area').css('display', 'none');
+			break;
+		}
+
+		switch(index) {
+			case APP_TYPE.APP_CS_DJI_ACTION_WIRELESS:
+			case APP_TYPE.APP_CS_DJI_ACTION234:
+			case APP_TYPE.APP_CS_DJI_POCKET2_WIRELESS:
+			case APP_TYPE.APP_CS_DJI_POCKET3:
+			case APP_TYPE.APP_CS_DJI_GOGGLES3_WIRELESS:
+				$('#djibt_params_area').css('display', 'block');
+				BtInfoRequest(index);
+			break;
+			default:
+				$('#djibt_params_area').css('display', 'none');
+			break;
+		}
+
+	}
+
+	function CheckFwUpdate(current) {
+		var current_int = MakeVersionInt(current);
+		$.get("http://cosmostreamer.com/apps/cosmostreamer-ng/download/version.php", function(remoteVer) {
+			var remote_int = MakeVersionInt(remoteVer);
+		  	//alert('remote:' + remote_int + ' current: ' + current_int);
+			if (remote_int > current_int) {
+				//alert('New fw update available!');
+				$('#fwupdatemsg').html('Firmware update available! Version ' + remoteVer + '. Open chapter "System" for install update.');
+				$('#fwupdatemsg').css('display', 'block');
+			} else {
+				$('#fwupdatemsg').css('display', 'none');
+			}
+		});
+	}
+
+	function MakeVersionInt(ver) {
+		var tmp = ver.split('.');
+		var t1 = parseInt(tmp[0]) * 1000000;
+		var t2 = parseInt(tmp[1]) * 10000;
+		var t3 = parseInt(tmp[2]);
+		var ver_int = t1 + t2 + t3;
+		return ver_int;
+	}
+
+</script>

@@ -1,0 +1,61 @@
+<p class="option_title" style="background:red; color:white; padding:10px;">ONLY FOR Raspberry Pi models with Ethernet interface !!!</p>
+
+<p><span class="option_title"><input type="checkbox" id="eth_ip_enabled"><label for="eth_ip_enabled">Static IP enabled</label></span></p>
+
+<p class="option_title gray">Static IP address</p>
+<div><input type="text" id="eth_ip_textarea" style="width:100%; height:30px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></div>
+<p class="option_title gray">Static mask</p>
+<div><input type="text" id="eth_mask_textarea" style="width:100%; height:30px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></div>
+<p class="option_title gray">Default gw</p>
+<div><input type="text" id="eth_gw_textarea" style="width:100%; height:30px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></div>
+<p class="option_title gray">DNS server</p>
+<div><input type="text" id="eth_dns_textarea" style="width:100%; height:30px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></div>
+
+<p><input id="eth_save_button" type="button" value="Save" style="background-color:red; color:white; padding:10px; border:0; width:100px;"></p>
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"ethernet"}');
+	}
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		$('#eth_save_button').on("click", function(e) {
+
+			if (!confirm("Are you sure?")) return;
+
+			var enabled = $("#eth_ip_enabled").prop('checked') ? 1 : 0;
+			var ip = $("#eth_ip_textarea").val();
+			var mask = $("#eth_mask_textarea").val();
+			var gw = $("#eth_gw_textarea").val();
+			var dns = $("#eth_dns_textarea").val();
+			var cmd = '{"cmd":"updateconfig","param":"ethernet","value":"' + enabled + '","value2":"' + ip + '","value3":"' + mask + '","value4":"' + gw + '","value5":"' + dns + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+	}
+
+	function ParseDeviceConfig(json) {
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		$("#eth_ip_enabled").prop("checked", config.enabled);
+		$("#eth_ip_textarea").val(config.ip);
+		$("#eth_mask_textarea").val(config.mask);
+		$("#eth_gw_textarea").val(config.gw);
+		$("#eth_dns_textarea").val(config.dns);
+	}
+
+</script>

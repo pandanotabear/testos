@@ -1,0 +1,71 @@
+<p><span class="option_title"><input type="checkbox" id="camera_enabled"><label for="camera_enabled">Use Raspberry Pi camera as overlay camera</label></span></p>
+<p class="option_title gray">Camera params (raspivid command)</p>
+<div><textarea id="camera_params_textarea" style="width:100%; height:80px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; "></textarea></div>
+<p><input id="camera_default_button" type="button" value="Set default" style="background-color:transparent; color:white; padding:10px; border-width:1px; width:100px;"></p>
+
+
+<p><span class="option_title"><input type="checkbox" id="gst_enabled"><label for="gst_enabled">Use Gstreamer pipeline as overlay camera</label></span></p>
+<p class="option_title gray">Gstreamer pipeline (output must be H264 stream)</p>
+<div><textarea id="gst_params_textarea" style="width:100%; height:80px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; "></textarea></div>
+<p><input id="gst_default_button" type="button" value="Set default" style="background-color:transparent; color:white; padding:10px; border-width:1px; width:100px;"></p>
+
+<p><input id="camera_save_button" type="button" value="Save" style="background-color:red; color:white; padding:10px; border:0; width:100px;"></p>
+
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"camera"}');
+	}
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		$('#camera_save_button').on("click", function(e) {
+			var enabled = $("#camera_enabled").prop('checked') ? 1 : 0;
+			var enabled2 = $("#gst_enabled").prop('checked') ? 1 : 0;
+			var params = $("#camera_params_textarea").val();
+			var params2 = $("#gst_params_textarea").val();
+			var cmd = '{"cmd":"updateconfig","param":"internal_camera","value":"' + enabled + '","value2":"' + params + '","value3":"' + enabled2 + '","value4":"' + params2 + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$('#camera_default_button').on("click", function(e) {
+			$("#camera_params_textarea").val('-w 320 -h 200 -fps 60 --bitrate 1000000 --preview 100,100,320,200 --dispnum 0');
+		});
+		$('#gst_default_button').on("click", function(e) {
+			$("#gst_params_textarea").val('videotestsrc is-live=1 do-timestamp=true ! video/x-raw,width=320,height=200 ! v4l2h264enc');
+		});
+
+
+		$('#camera_enabled').on('change', function() {
+			$('#gst_enabled').prop('checked', '');
+		});
+
+		$('#gst_enabled').on('change', function() {
+			$('#camera_enabled').prop('checked', '');
+		});
+	}
+
+	function ParseDeviceConfig(json) {
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		$("#camera_enabled").prop("checked", config.enabled);
+		$("#camera_params_textarea").val(config.camera_params);
+		$("#gst_enabled").prop("checked", config.gst_enabled);
+		$("#gst_params_textarea").val(config.gst_params);
+	}
+
+</script>

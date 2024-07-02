@@ -1,0 +1,624 @@
+<div class="tab">
+	<button class="tablinks active" onclick="openTab(event, 'StreamingUDPH264')">UDP Raw H264/H265</button>
+	<button class="tablinks" onclick="openTab(event, 'StreamingRTP')">RTP</button>
+	<button class="tablinks" onclick="openTab(event, 'StreamingRTSP')">RTSP</button>
+	<button class="tablinks" onclick="openTab(event, 'StreamingRTMP')">RTMP</button>
+	<button class="tablinks" onclick="openTab(event, 'StreamingSRT')">SRT</button>
+	<button class="tablinks" onclick="openTab(event, 'StreamingMPEGTS')">MPEG-TS</button>
+	<button class="tablinks" onclick="openTab(event, 'StreamingNDI')">NDI</button>
+	<button class="tablinks" onclick="openTab(event, 'StreamingNDIHX')">NDI | HX</button>
+	<button class="tablinks" onclick="openTab(event, 'StreamingV4l2')">V4l2</button>
+	<button class="tablinks" onclick="openTab(event, 'StreamingDVBT')">DVB-T</button>
+	<button class="tablinks" onclick="openTab(event, 'StreamingBridge')">Transparent bridge</button>
+</div>
+
+
+<div id="StreamingUDPH264" class="tabcontent" style="display:block;">
+	<p><span class="option_title"><input type="checkbox" id="udph264_enabled"><label for="udph264_enabled">Enable raw restream (H264 or H265 depends on camera)</label></span></p>
+
+	<p class="option_title gray">Clients (host:port,host:port, ...)</p>
+	<div><input type="text" id="udp_clients_textarea" style="width:100%; padding:5px; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<p class="option_title gray">Block size (1000 - 60000 bytes)</p>
+	<div><input type="text" id="udp_blocksize_textarea" style="width:100%; height:30px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px; "></div>
+
+	<p class="option_title gray" style="margin-top:30px;">Gstreamer example pipeline for video receiving</p>
+	<div>
+		<textarea style="width:100%; height:80px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border:0; ">gst-launch-1.0.exe -v udpsrc port=3000 buffer-size=13000000 ! parsebin ! decodebin ! autovideosink sync=false</textarea>
+	</div>
+
+	<div><input id="streaming_udph264_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"/></div>
+</div>
+
+<div id="StreamingRTP" class="tabcontent">
+	<p><span class="option_title"><input type="checkbox" id="rtp_enabled"><label for="rtp_enabled">Enable RTP restream</label></span></p>
+
+	<p class="option_title gray">Clients (host:port,host:port, ...)</p>
+	<div><input type="text" id="rtp_clients_textarea" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<p><span class="option_title"><input type="checkbox" id="rtp_fec_enabled"><label for="rtp_fec_enabled">Use Forward Error Correction (FEC)</label></span></p>
+
+	<p class="option_title gray">Forward Error Correction Percentage</p>
+	<select id="rtp_fec_percentage" class="option_el" style="width:50px; margin:5px;">
+		<option>10</option>
+		<option>20</option>
+		<option>30</option>
+		<option>40</option>
+		<option>50</option>
+		<option>60</option>
+		<option>70</option>
+		<option>80</option>
+		<option>90</option>
+		<option>100</option>
+	</select>
+
+	<p class="option_title gray" style="margin-top:30px;">Gstreamer example pipeline for video receiving</p>
+	<div>
+		<textarea style="width:100%; height:80px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border:0; ">gst-launch-1.0.exe -v udpsrc port=5000 buffer-size=13000000 caps="application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264,payload=(int)96" ! rtph264depay ! parsebin ! decodebin ! autovideosink sync=false</textarea>
+	</div>
+
+	<div><input id="streaming_rtp_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"/></div>
+</div>
+
+
+<div id="StreamingRTSP" class="tabcontent">
+	<p><span class="option_title"><input type="checkbox" id="rtsp_enabled"><label for="rtsp_enabled">Enable RTSP server</label></span></p>
+
+	<p class="option_title gray">Port (default - 554)</p>
+	<div><input id="rtsp_port_field" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<br>
+	<p class="option_title gray">RTSP URL (can't be changed here)</p>
+	<div><input type="text" id="rtsp_url" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<p class="option_title gray" style="margin-top:30px;">Gstreamer example pipeline for video receiving</p>
+	<div>
+		<textarea style="width:100%; height:80px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border:0; ">gst-launch-1.0.exe -v rtspsrc location="rtsp://192.168.50.1:554/video" ! rtph264depay ! parsebin ! decodebin ! autovideosink sync=false</textarea>
+	</div>
+
+	<div><input id="streaming_rtsp_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"/></div>
+</div>
+
+
+<div id="StreamingRTMP" class="tabcontent">
+
+	<p>For local RTMP server streaming use URL "rtmp://127.0.0.1/live" and any key, for example, "camera". In this case this stream will be available as HLS <a id="hls_url" href="http://127.0.0.1/hls/camera.m3u8" target="_blank" style="color:red; text-decoration:underline;">http://127.0.0.1/hls/camera.m3u8</a>  or as RTMP <a id="local_rtmp_url" href="rtmp:///live/camera" target="_blank" style="color:red; text-decoration:underline;">rtmp://127.0.0.1/live/camera</a>
+
+	<p><span class="option_title"><input type="checkbox" id="rtmp_enabled"><label for="rtmp_enabled">Enable RTMP stream 1</label></span></p>
+
+	<p class="option_title gray">Stream 1 RTMP URL</p>
+	<div><input type="text" id="rtmp_url_textarea" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<p class="option_title gray">Stream 1 RTMP Key</p>
+	<div><input type="text" id="rtmp_key_textarea" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+
+	<p><span class="option_title"><input type="checkbox" id="rtmp2_enabled"><label for="rtmp2_enabled">Enable RTMP stream 2</label></span></p>
+
+	<p class="option_title gray">Stream 2 RTMP URL</p>
+	<div><input type="text" id="rtmp2_url_textarea" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<p class="option_title gray">Stream 2 RTMP Key</p>
+	<div><input type="text" id="rtmp2_key_textarea" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<div><input id="streaming_rtmp_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"/></div>
+
+</div>
+
+<div id="StreamingSRT" class="tabcontent" style="display:none;">
+	<p><span class="option_title"><input type="checkbox" id="srt_enabled"><label for="srt_enabled">Enabled</label></span></p>
+
+	<p class="option_title gray">SRT URL</p>
+	<div><input type="text" id="srt_url_textarea" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<div><input id="streaming_srt_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"/></div>
+
+	<p class="option_title gray" style="margin-top:30px;">Gstreamer listener example</p>
+	<div>
+		<textarea style="width:100%; height:80px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border:0; ">gst-launch-1.0.exe -v -e srtclientsrc uri=srt://:9001 ! tsdemux ! parsebin ! decodebin ! autovideosink sync=false</textarea>
+	</div>
+
+	<p class="option_title gray" style="margin-top:30px;">Gstreamer caller example</p>
+	<div>
+		<textarea style="width:100%; height:80px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border:0; ">gst-launch-1.0.exe -v -e srtsrc uri=srt://192.168.50.1:9001 ! tsdemux ! parsebin ! decodebin ! autovideosink sync=false</textarea>
+	</div>
+</div>
+
+<div id="StreamingMPEGTS" class="tabcontent" style="display:none;">
+	<p><span class="option_title"><input type="checkbox" id="mpegts_enabled"><label for="mpegts_enabled">Enabled</label></span></p>
+
+	<p class="option_title gray">Mode</p>
+	<select id="mpegts_mode" class="option_el" style="width:100px; margin:5px;">
+		<option>UDP sender</option>
+		<option>TCP client</option>
+		<option>TCP server</option>
+	</select>
+
+	<div>&nbsp;</div>
+
+	<div id="mpegts_mode0_area" style="display:none;">
+	<p class="option_title gray">Clients list (host:port,host:port, etc)</p>
+	<div><input type="text" id="mpegts_udp_clients" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<p class="option_title gray" style="margin-top:30px;">Gstreamer example pipeline for video receiving (use your own port)</p>
+	<div>
+		<textarea style="width:100%; height:80px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border:0; ">gst-launch-1.0 -v udpsrc port=10000 ! queue ! tsdemux name=demux ! parsebin ! decodebin ! autovideosink sync=false</textarea>
+	</div>
+
+	</div>
+
+	<div id="mpegts_mode1_area" style="display:none;">
+	<p class="option_title gray">Remote host</p>
+	<div><input type="text" id="mpegts_tcp_client_host" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+	<p class="option_title gray">Remote port</p>
+	<div><input type="text" id="mpegts_tcp_client_port" style="width:100px; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<p class="option_title gray" style="margin-top:30px;">Gstreamer example pipeline for video receiving (use your own port)</p>
+	<div>
+		<textarea style="width:100%; height:80px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border:0; ">gst-launch-1.0 -v tcpserversrc host=0.0.0.0 port=4000 ! queue ! tsdemux name=demux ! parsebin ! decodebin ! autovideosink sync=false</textarea>
+	</div>
+
+	</div>
+
+	<div id="mpegts_mode2_area" style="display:none;">
+	<p class="option_title gray">Local port</p>
+	<div><input type="text" id="mpegts_tcp_server_port" style="width:100px; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<p class="option_title gray" style="margin-top:30px;">Gstreamer example pipeline for video receiving (use your own host port)</p>
+	<div>
+		<textarea style="width:100%; height:80px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border:0; ">gst-launch-1.0 -v tcpclientsrc host=192.168.10.22 port=4000 ! queue ! tsdemux name=demux ! parsebin ! decodebin ! autovideosink sync=false</textarea>
+	</div>
+
+	</div>
+
+	<div><input id="streaming_mpegts_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"/></div>
+</div>
+
+<div id="StreamingNDI" class="tabcontent" style="display:none;">
+	<p><span class="option_title"><input type="checkbox" id="ndi_enabled"><label for="ndi_enabled">Enabled</label></span></p>
+
+	<p class="option_title gray">NDI stream name</p>
+	<div><input type="text" id="ndi_name_textarea" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<div><input id="streaming_ndi_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"/></div>
+</div>
+
+<div id="StreamingNDIHX" class="tabcontent" style="display:none;">
+	<p><span class="option_title"><input type="checkbox" id="ndihx_enabled"><label for="ndihx_enabled">Enabled</label></span></p>
+
+	<p class="option_title gray">NDI | HX stream name</p>
+	<div><input type="text" id="ndihx_name_textarea" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<div><input id="streaming_ndihx_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"/></div>
+</div>
+
+<div id="StreamingV4l2" class="tabcontent" style="display:none;">
+	<p><span class="option_title"><input type="checkbox" id="v4l2_enabled"><label for="v4l2_enabled">Enabled</label></span></p>
+
+	<p class="option_title gray">Video available as device /dev/video20 on Raspberry Pi</p>
+
+	<div><input id="streaming_v4l2_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"/></div>
+</div>
+
+<div id="StreamingDVBT" class="tabcontent" style="display:none;">
+	<p class="option_title gray">Only IT950/951 devices are supported</p>
+
+	<br>
+
+	<p class="option_title gray">Estimated Channel Capacity: <span class="option_title yellow dvbt_channel_capacity">unknown</span></p>
+
+	<p><span class="option_title"><input type="checkbox" id="dvbt_enabled"><label for="dvbt_enabled">Enabled</label></span></p>
+
+	<p><span class="option_title"><input type="checkbox" id="dvbt_use_transcoded"><label for="dvbt_use_transcoded">Use transcoded stream</label></span></p>
+
+	<p class="option_title gray">Frequency (kHz)</p>
+	<div><input type="text" id="dvbt_freq" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<p class="option_title gray">Bandwidth (kHz, 2000-8000)</p>
+	<div><input type="text" class="dvbt_changeable" id="dvbt_band" style="width:100%; margin-bottom:10px; background-color:transparent; padding:5px; color:white;"></div>
+
+	<p class="option_title gray">Modulation constellation</p>
+	<select id="dvbt_constellation" class="option_el dvbt_changeable" style="width:100px; margin:5px;">
+		<option>QPSK</option>
+		<option>16QAM</option>
+		<option>32QAM</option>
+		<option>64QAM</option>
+	</select>
+
+	<p class="option_title gray">Forward Error Correction (FEC)</p>
+	<select id="dvbt_fec" class="option_el dvbt_changeable" style="width:100px; margin:5px;">
+		<option>1/2</option>
+		<option>2/3</option>
+		<option>3/4</option>
+		<option>5/6</option>
+		<option>7/8</option>
+	</select>
+
+	<p class="option_title gray">Guard Interval</p>
+	<select id="dvbt_guard" class="option_el dvbt_changeable" style="width:100px; margin:5px;">
+		<option>1/4</option>
+		<option>1/8</option>
+		<option>1/16</option>
+		<option>1/32</option>
+	</select>
+
+	<p class="option_title gray">Transmission Mode</p>
+	<select id="dvbt_transmission_mode" class="option_el dvbt_changeable" style="width:100px; margin:5px;">
+		<option>2k</option>
+		<option>8k</option>
+	</select>
+
+	<p class="option_title gray">Gain (dB)</p>
+	<select id="dvbt_gain" class="option_el" style="width:100px; margin:5px;">
+		<option>6</option>
+		<option>5</option>
+		<option>4</option>
+		<option>3</option>
+		<option>1</option>
+		<option>1</option>
+		<option>0</option>
+		<option>-10</option>
+		<option>-20</option>
+		<option>-30</option>
+		<option>-40</option>
+		<option>-52</option>
+	</select>
+
+	<br><br>
+	<p class="option_title gray">Estimated Channel Capacity: <span class="option_title yellow dvbt_channel_capacity">unknown</span></p>
+
+	<div>
+		<input id="streaming_dvbt_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"/>
+		<input id="streaming_dvbt_set_default_button" type="button" value="Set default" style="width:100px; padding:10px; background-color:transparent; color:white; border:1; margin-top:20px; margin-left:20px;"/>
+	</div>
+</div>
+
+<div id="StreamingBridge" class="tabcontent" style="display:none;">
+	<p class="option_title gray">Enable transparent bridge for supported cameras</p>
+	<p><span class="option_title"><input type="checkbox" id="streaming_bridge_enabled"><label for="streaming_bridge_enabled">Enabled</label></span></p>
+	<div><input id="streaming_bridge_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"/></div>
+</div>
+
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"streaming"}');
+	}
+
+	function DeviceConfigInit() {
+		/// Fill default values
+		var this_host = document.location.host;
+
+		$("#hls_url").attr("href", "http://" + this_host + "/hls/camera.m3u8");
+		$("#hls_url").html("http://" + this_host + "/hls/camera.m3u8");
+
+		$("#local_rtmp_url").attr("href", "rtmp://" + this_host + "/live/camera");
+		$("#local_rtmp_url").html("rtmp://" + this_host + "/live/camera");
+
+
+		$("#streaming_rtmp_save_button").on("click", function(e) {
+
+			var enabled = $("#rtmp_enabled").prop("checked") ? 1 : 0;
+			var url = $("#rtmp_url_textarea").val();
+			var key = $("#rtmp_key_textarea").val();
+			var enabled2 = $("#rtmp2_enabled").prop("checked") ? 1 : 0;
+			var url2 = $("#rtmp2_url_textarea").val();
+			var key2 = $("#rtmp2_key_textarea").val();
+			var cmd = '{"cmd":"updateconfig","param":"streaming","value":"rtmp","value2":"' + enabled + '","value3":"' + url + '","value4":"' + key + '","value5":"' + enabled2 + '","value6":"' + url2 + '","value7":"' + key2 + '"}';
+			sendStringCommand(cmd);
+
+			$(this).css('background-color','darkred');
+		});
+
+		$("#streaming_srt_save_button").on("click", function(e) {
+			var enabled = $("#srt_enabled").prop("checked") ? 1 : 0;
+			var url = $("#srt_url_textarea").val();
+			var cmd = '{"cmd":"updateconfig","param":"streaming","value":"srt","value2":"' + enabled + '","value3":"' + url + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$("#streaming_mpegts_save_button").on("click", function(e) {
+			var enabled = $("#mpegts_enabled").prop("checked") ? 1 : 0;
+			var mode = $("#mpegts_mode").prop('selectedIndex');
+			var udp_clients = $("#mpegts_udp_clients").val();
+			var tcp_client_host = $("#mpegts_tcp_client_host").val();
+			var tcp_client_port = $("#mpegts_tcp_client_port").val();
+			var tcp_server_port = $("#mpegts_tcp_server_port").val();
+			var cmd = '{"cmd":"updateconfig","param":"streaming","value":"mpegts","value2":"' + enabled + '","value3":"' + mode + '","value4":"' + udp_clients + '","value5":"' + tcp_client_host + '","value6":"' + tcp_client_port + '","value7":"' + tcp_server_port + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$("#streaming_ndi_save_button").on("click", function(e) {
+			var enabled = $("#ndi_enabled").prop("checked") ? 1 : 0;
+			var name = $("#ndi_name_textarea").val();
+			var cmd = '{"cmd":"updateconfig","param":"streaming","value":"ndi","value2":"' + enabled + '","value3":"' + name + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$("#streaming_ndihx_save_button").on("click", function(e) {
+			var enabled = $("#ndihx_enabled").prop("checked") ? 1 : 0;
+			var name = $("#ndihx_name_textarea").val();
+			var cmd = '{"cmd":"updateconfig","param":"streaming","value":"ndihx","value2":"' + enabled + '","value3":"' + name + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$("#streaming_v4l2_save_button").on("click", function(e) {
+			var enabled = $("#v4l2_enabled").prop("checked") ? 1 : 0;
+			var cmd = '{"cmd":"updateconfig","param":"streaming","value":"v4l2","value2":"' + enabled + '","value3":""}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$("#streaming_udph264_save_button").on("click", function(e) {
+
+			var enabled = $("#udph264_enabled").prop("checked") ? 1 : 0;
+			var clients = $("#udp_clients_textarea").val();
+			var blocksize = $("#udp_blocksize_textarea").val();
+			var cmd = '{"cmd":"updateconfig","param":"streaming","value":"udp","value2":"' + enabled + '","value3":"' + clients + '","value4":"' + blocksize + '"}';
+			sendStringCommand(cmd);
+
+			$(this).css('background-color','darkred');
+		});
+
+		$("#streaming_rtp_save_button").on("click", function(e) {
+
+			var enabled = $("#rtp_enabled").prop("checked") ? 1 : 0;
+			var clients = $("#rtp_clients_textarea").val();
+			var use_fec = $("#rtp_fec_enabled").prop("checked") ? 1 : 0;
+			var fec_pers = $("#rtp_fec_percentage").val();
+			var cmd = '{"cmd":"updateconfig","param":"streaming","value":"rtp","value2":"' + enabled + '","value3":"' + clients + '","value4":"' + use_fec + '","value5":"' + fec_pers + '"}';
+			sendStringCommand(cmd);
+
+			$(this).css('background-color','darkred');
+		});
+
+		$("#streaming_rtsp_save_button").on("click", function(e) {
+			var enabled = $("#rtsp_enabled").prop("checked") ? 1 : 0;
+			var port = $("#rtsp_port_field").val();
+			var cmd = '{"cmd":"updateconfig","param":"streaming","value":"rtsp","value2":"' + enabled + '","value3":"' + port + '"}';
+			sendStringCommand(cmd);
+
+			$(this).css('background-color','darkred');
+		});
+
+		$("#rtsp_port_field").on("change", function(e) {
+			$("#rtsp_url").val("rtsp://" + document.location.host + ":" + $("#rtsp_port_field").val() + "/video");
+		});
+
+		$(".dvbt_changeable").on("change", function(e) {
+			DvbtCalculateCapacity();
+		});
+
+		$("#streaming_dvbt_set_default_button").on("click", function(e) {
+			$("#dvbt_freq").val("490000");
+			$("#dvbt_band").val("8000");
+			$("#dvbt_constellation").val("16QAM");
+			$("#dvbt_fec").val("1/2");
+			$("#dvbt_guard").val("1/4");
+			$("#dvbt_transmission_mode").val("2k");
+			$("#dvbt_gain").val("6");
+
+			DvbtCalculateCapacity();
+		});
+
+		$("#streaming_dvbt_save_button").on("click", function(e) {
+
+			var enabled = $("#dvbt_enabled").prop("checked") ? 1 : 0;
+			var use_transcoding = $("#dvbt_use_transcoded").prop("checked") ? 1 : 0;
+			var freq = $("#dvbt_freq").val();
+			var band = $("#dvbt_band").val();
+			var constellation = $("#dvbt_constellation").val();
+			var fec = $("#dvbt_fec").val();
+			var guard = $("#dvbt_guard").val();
+			var trmode = $("#dvbt_transmission_mode").val();
+			var gain = $("#dvbt_gain").val();
+
+            if (constellation == "32QAM")
+            {
+                alert("32QAM is not supported");
+                return;
+            }
+
+            var cmd = "{\"cmd\":\"updateconfig\",\"param\":\"streaming\",";
+            cmd += "\"value\":\"dvbt\",";
+            cmd += "\"value2\":\"" + enabled + "\",";
+            cmd += "\"value3\":\"" + freq + "\",";
+            cmd += "\"value4\":\"" + band + "\",";
+            cmd += "\"value5\":\"" + constellation + "\",";
+            cmd += "\"value6\":\"" + fec + "\",";
+            cmd += "\"value7\":\"" + guard + "\",";
+            cmd += "\"value8\":\"" + trmode + "\",";
+            cmd += "\"value9\":\"" + gain + "\",";
+            cmd += "\"value10\":\"" + use_transcoding + "\"";
+            cmd += "}";
+
+			sendStringCommand(cmd);
+
+			DvbtCalculateCapacity();
+
+			$(this).css('background-color','darkred');
+		});
+
+		$("#streaming_bridge_save_button").on("click", function(e) {
+
+			var enabled = $("#streaming_bridge_enabled").prop("checked") ? 1 : 0;
+
+            var cmd = "{\"cmd\":\"updateconfig\",\"param\":\"streaming\",";
+            cmd += "\"value\":\"bridge\",";
+            cmd += "\"value2\":\"" + enabled + "\"";
+            cmd += "}";
+
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$("#mpegts_mode").on("change", function(e) {
+			$("#mpegts_mode0_area").css('display', 'none');
+			$("#mpegts_mode1_area").css('display', 'none');
+			$("#mpegts_mode2_area").css('display', 'none');
+
+			var index = $(this).prop('selectedIndex');
+			$("#mpegts_mode" + index + "_area").css('display', 'block');
+		});
+	}
+
+	function ParseDeviceConfig(json) {
+		//alert(json);
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		$("#udph264_enabled").prop("checked", config.udp_enabled);
+		$("#udp_clients_textarea").val(config.udp_clients);
+		$("#udp_blocksize_textarea").val(config.udp_blocksize);
+
+		$("#rtp_enabled").prop("checked", config.rtp_enabled);
+		$("#rtp_clients_textarea").val(config.rtp_clients);
+		$("#rtp_fec_enabled").prop("checked", config.rtp_fec);
+		$("#rtp_fec_percentage").val(config.rtp_fec_pers);
+
+
+		$("#rtmp_enabled").prop("checked", config.rtmp_enabled);
+		$("#rtmp_url_textarea").val(config.rtmp_url);
+		$("#rtmp_key_textarea").val(config.rtmp_key);
+		$("#rtmp2_enabled").prop("checked", config.rtmp2_enabled);
+		$("#rtmp2_url_textarea").val(config.rtmp2_url);
+		$("#rtmp2_key_textarea").val(config.rtmp2_key);
+
+		$("#srt_enabled").prop("checked", config.srt_enabled);
+		$("#srt_url_textarea").val(config.srt_url);
+
+		$("#mpegts_enabled").prop("checked", config.mpegts_enabled);
+		$("#mpegts_mode").prop("selectedIndex", config.mpegts_mode);
+		$("#mpegts_udp_clients").val(config.mpegts_udp_clients);
+		$("#mpegts_tcp_client_host").val(config.mpegts_tcp_client_host);
+		$("#mpegts_tcp_client_port").val(config.mpegts_tcp_client_port);
+		$("#mpegts_tcp_server_port").val(config.mpegts_tcp_server_port);
+		$("#mpegts_mode").trigger("change");
+
+		$("#ndi_enabled").prop("checked", config.ndi_enabled);
+		$("#ndi_name_textarea").val(config.ndi_name);
+
+		$("#ndihx_enabled").prop("checked", config.ndihx_enabled);
+		$("#ndihx_name_textarea").val(config.ndihx_name);
+
+		$("#v4l2_enabled").prop("checked", config.v4l2_enabled);
+
+		$("#rtsp_enabled").prop("checked", config.rtsp_enabled);
+		$("#rtsp_port_field").val(config.rtsp_port);
+
+		$("#dvbt_enabled").prop("checked", config.dvbt_enabled);
+		$("#dvbt_use_transcoded").prop("checked", config.dvbt_transcoding);
+		$("#dvbt_freq").val(config.dvbt_freq);
+		$("#dvbt_band").val(config.dvbt_band);
+		$("#dvbt_constellation").val(config.dvbt_const);
+		$("#dvbt_fec").val(config.dvbt_fec);
+		$("#dvbt_guard").val(config.dvbt_guard);
+		$("#dvbt_transmission_mode").val(config.dvbt_mode);
+		$("#dvbt_gain").val(config.dvbt_gain);
+
+		try {
+			DvbtCalculateCapacity();
+		} catch (e) {}
+
+		$("#rtsp_url").val("rtsp://" + document.location.host + ":" + config.rtsp_port + "/video");
+
+		$("#streaming_bridge_enabled").prop("checked", config.bridge_enabled);
+	}
+
+
+	function DvbtCalculateCapacity() {
+            var ChannelCapacity = 0;
+            var Bw = 0;
+            var constellation = 0;
+            var interval = 0;
+            var highCodeRate = 0;
+
+
+			var band = $("#dvbt_band").val();
+            Bw = parseInt(band);
+
+            switch ($("#dvbt_constellation").val())
+            {
+                case "QPSK": constellation = 0; break;
+                case "16QAM": constellation = 1; break;
+                case "32QAM": break;
+                case "64QAM": constellation = 2; break;
+            }
+
+            ChannelCapacity = Bw * 1000;
+            ChannelCapacity = ChannelCapacity * (constellation * 2 + 2);
+
+            switch ($("#dvbt_guard").val())
+            {
+                case "1/32": interval = 0; break;
+                case "1/16": interval = 1; break;
+                case "1/8": interval = 2; break;
+                case "1/4": interval = 3; break;
+            }
+
+            switch (interval)
+            {
+                case 0: //1/32
+                    ChannelCapacity = ChannelCapacity * 32 / 33;
+                    break;
+                case 1: //1/16
+                    ChannelCapacity = ChannelCapacity * 16 / 17;
+                    break;
+                case 2: //1/8
+                    ChannelCapacity = ChannelCapacity * 8 / 9;
+                    break;
+                case 3: //1/4
+                    ChannelCapacity = ChannelCapacity * 4 / 5;
+                    break;
+            }
+
+            switch ($("#dvbt_fec").val())
+            {
+                case "1/2": highCodeRate = 0; break;
+                case "2/3": highCodeRate = 1; break;
+                case "3/4": highCodeRate = 2; break;
+                case "5/6": highCodeRate = 3; break;
+                case "7/8": highCodeRate = 4; break;
+            }
+
+            switch (highCodeRate)
+            {
+                case 0: //1/2
+                    ChannelCapacity = ChannelCapacity * 1 / 2;
+                    break;
+                case 1: //2/3
+                    ChannelCapacity = ChannelCapacity * 2 / 3;
+                    break;
+                case 2: //3/4
+                    ChannelCapacity = ChannelCapacity * 3 / 4;
+                    break;
+                case 3: //5/6
+                    ChannelCapacity = ChannelCapacity * 5 / 6;
+                    break;
+                case 4: //7/8
+                    ChannelCapacity = ChannelCapacity * 7 / 8;
+                    break;
+            }
+
+            ChannelCapacity = ChannelCapacity / 544 * 423;
+
+            $(".dvbt_channel_capacity").html(parseInt(ChannelCapacity / 1000) + " kbps");
+	}
+
+</script>

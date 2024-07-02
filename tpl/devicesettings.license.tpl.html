@@ -1,0 +1,107 @@
+<p><span class="option_title gray">Camera type</span> <span id="camera_type"></span> </p>
+
+<div class="option_title gray">Board id:</div>
+<div><textarea id="board_id" style="width:100%; height:40px; margin-bottom:10px; padding:5px; background-color:transparent; color:white; border:0;"></textarea></div>
+
+<div>
+<a href="qr.php" target="_blank"><img src="qr.php" style="width:200px;"></a>
+</div>
+
+<p><span class="option_title gray">License key:</span> <textarea id="license_key" style="width:100%; height:100px; padding:5px; background-color:transparent; color:white;"></textarea> </p>
+
+<p><input id="install_key_button" type="button" value="Install license key" style="background-color:red; color:white; padding:10px; border:0;"></p>
+
+<p>&nbsp;</p>
+<p>Multiple licenses archive uploading</p>
+<div>
+	<form id="license_archive_upload" action="licenseupload.php" enctype="multipart/form-data" method="post">
+	<p><input type="file" name="file" id="file" size="40"></p>
+	<p><input id="licenses_upload_button" type="submit" value="Upload licenses archive" style="background-color:red; color:white; padding:10px; border:0;"> <span id="licenses_upload_status"></span></p>
+</div>
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"license"}');
+	}
+
+	function DeviceConfigInit() {
+
+		$('#install_key_button').on("click", function(e) {
+			if (!confirm("Are you sure?")) return;
+			var key = $("#license_key").val();
+			sendStringCommand('{"cmd":"updateconfig","param":"license","value":"' + key + '\"}');
+			$(this).css('background-color','darkred');
+		});
+	}
+
+	function ParseDeviceConfig(json) {
+		//alert(json);
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		$("#camera_type").html(app_types_array[config.app_type]);
+		$("#board_id").html(config.board_id);
+		$("#license_key").text(config.license_key);
+	}
+
+		$("form#license_archive_upload").submit(function(e){
+			e.preventDefault();
+
+			if ($("#file").val() == "") {
+				alert('File not selected');
+				return;
+			}
+
+			if (!confirm("Are you sure?")) return;
+
+			var formData = new FormData($(this)[0]);
+
+			$("#licenses_upload_status").html("Uploading licenses archive...");
+
+			$.ajax({
+				url: $(this).attr("action"),
+				type: 'POST',
+				data: formData,
+				async: true,
+				cache: false,
+				contentType: false,
+				enctype: 'multipart/form-data',
+				processData: false,
+				success: function (response) {
+					if (response == 'ok') {
+						$("#licenses_upload_status").html('Uploading done');
+					}
+					else {
+						$("#licenses_upload_status").html('Uploading failed');
+					}
+				},
+				error: function () {
+					$("#licenses_upload_status").html('Error');
+				},
+				xhr: function() {
+					var xhr = new window.XMLHttpRequest();
+					xhr.upload.addEventListener("progress", function(evt) {
+						if (evt.lengthComputable) {
+							var percentComplete = (evt.loaded / evt.total) * 100;
+							$("#licenses_upload_status").html("Uploaded " + parseInt(percentComplete) + ' %');
+						}
+					}, false);
+					return xhr;
+				}
+			});
+			return false;
+		});
+
+</script>

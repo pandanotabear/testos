@@ -1,0 +1,201 @@
+<p>
+	<span class="option_title"><input type="checkbox" id="servo_enabled"><label for="servo_enabled">Enabled</label></span>
+</p>
+
+<p class="option_title gray">Screen joystick type</p>
+<select id="servo_joystick_type_option" class="option_el" style="width:100px; margin:5px;">
+	<option></option>
+	<option>Sliders</option>
+	<option>Joystick</option>
+</select>
+
+
+<p>&nbsp;</p>
+
+<p class="option_title gray">Servo channels</p>
+<div id="servo_table_content"></div>
+
+<p><input id="servo_save_button" type="button" value="Save settings" style="background-color:red; color:white; padding:10px; border:0;"></p>
+
+<div>
+	<p>Raspberry Pi board GPIO pinout</p>
+	<img src="imgs/rpi_gpio.png" style="width:100%;">
+</div>
+
+<script>
+
+	var servo_json = [];
+
+
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"servocontrol"}');
+	}
+
+	function DeviceConfigInit() {
+
+		$('#servo_save_button').on("click", function(e) {
+
+			var option_enabled = $("#servo_enabled").prop('checked') ? "1" : "0";
+            var joytype= $("#servo_joystick_type_option").prop('selectedIndex');
+
+			GetNewValues();
+
+			var servo_new_list = "";
+			for (var i = 0; i < servo_json.length; i++) {
+				if (servo_json[i] == undefined) continue;
+				if (servo_json[i] == null) continue;
+				servo_new_list += servo_json[i].gpio + "," + servo_json[i].min + "," + servo_json[i].center + "," + servo_json[i].max + "," + (servo_json[i].inverse ? "1" : "0") + ";";
+			}
+
+			sendStringCommand('{"cmd":"updateconfig","param":"servocontrol","value":"params","value2":"' + option_enabled + '","value3":"' + servo_new_list + '","value4":"' + joytype + '"}');
+			$(this).css('background-color','darkred');
+		});
+	}
+
+
+	function ParseDeviceConfig(json) {
+		//alert(json);
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		$("#servo_enabled").prop('checked', config.enabled == 1);
+		$("#servo_joystick_type_option").prop('selectedIndex', config.joystick_type);
+	
+		ParseServoChannelsList(config.list);
+	}
+
+
+	function ParseServoChannelsList(list) {
+		servo_json = [];
+		var servo_list = list.split(';');
+		for (var i = 0; i < servo_list.length; i++) {
+			if (servo_list[i] == "") continue;
+			var servo_parts = servo_list[i].split(',');
+			servo_json[i] = {};
+			servo_json[i].gpio = servo_parts[0];
+			servo_json[i].min = servo_parts[1];
+			servo_json[i].center = servo_parts[2];
+			servo_json[i].max = servo_parts[3];
+			servo_json[i].inverse = servo_parts[4] == 1 ? true : false;
+		}
+
+		MakeServoChannelsTable(servo_json);
+	}
+
+
+	function MakeServoChannelsTable(list_json) {
+
+		var table_tpl = '<table id="servo_table" border="0" cellspacing="0" cellpadding="2" style="font-size:12px; table-layout:fixed;">';
+		table_tpl += '<tr>';
+		table_tpl += '<td width="30"></td>';
+		table_tpl += '<td width="50">GPIO</td>';
+		table_tpl += '<td width="50">Min</td>';
+		table_tpl += '<td width="50">Center</td>';
+		table_tpl += '<td width="50">Max</td>';
+		table_tpl += '<td width="40">Inverse</td>';
+		table_tpl += '</tr>';
+		table_tpl += '{tr}';
+		table_tpl += '</table>';
+
+		var tr_tpl = '<tr id="servo_tr{index}">';
+		tr_tpl += '<td>{chan_id}</td>';
+
+		//tr_tpl += '<td><input id="servo_gpio{id}" type="text" value="{servo_gpio}" style="width:50px; padding:2;"></td>';
+
+		tr_tpl += '<td><select id="servo_gpio{id}" class="option_el" style="width:50px; margin:5px;"><option></option><option>17</option><option>27</option><option>22</option><option>23</option><option>18</option><option>24</option><option>4</option><option>25</option></select></td>';
+
+
+		tr_tpl += '<td><input id="servo_min{id}" type="text" value="{servo_min}" style="width:50px; padding:2;"></td>';
+		tr_tpl += '<td><input id="servo_center{id}" type="text" value="{servo_center}" style="width:50px; padding:2;"></td>';
+		tr_tpl += '<td><input id="servo_max{id}" type="text" value="{servo_max}" style="width:40px; padding:2;"></td>';
+		tr_tpl += '<td><input id="servo_inverse{id}" type="checkbox" {servo_inverse_checked} style="width:40px; padding:2;"></td>';
+
+		tr_tpl += '<td><input class="servo_default_btn" param="{id}" type="button" value="Default" style="padding:4;"></td>';
+		tr_tpl += '</tr>';
+
+		var content = table_tpl;
+		var channels_tr = "";
+
+		for (var i = 0; i < list_json.length; i++) {
+			if (list_json[i] == "") continue;
+
+			var servo_item = list_json[i];
+
+			var re;
+			var tr_content = tr_tpl;
+
+			re = new RegExp('{id}', 'g');
+			tr_content = tr_content.replace(re, i);
+
+			re = new RegExp('{chan_id}', 'g');
+			tr_content = tr_content.replace(re, i + 1);
+
+			re = new RegExp('{servo_gpio}', 'g');
+			tr_content = tr_content.replace(re, servo_item.gpio);
+
+			re = new RegExp('{servo_min}', 'g');
+			tr_content = tr_content.replace(re, servo_item.min);
+
+			re = new RegExp('{servo_center}', 'g');
+			tr_content = tr_content.replace(re, servo_item.center);
+
+			re = new RegExp('{servo_max}', 'g');
+			tr_content = tr_content.replace(re, servo_item.max);
+
+			tr_content = tr_content.replace('{servo_inverse_checked}', servo_item.shot ? "checked" : "");
+
+			channels_tr += tr_content;
+		}
+
+		content = content.replace('{tr}', channels_tr);
+
+		$("#servo_table_content").html(content);
+
+		for (var i = 0; i < list_json.length; i++) {
+			$("#servo_gpio" + i).val(list_json[i].gpio);
+		}
+
+
+		$(".servo_default_btn").on("click", function(e) {
+			ServoUpdate(this.getAttribute('param'));
+		});
+
+	}
+
+
+	function ServoUpdate(id) {
+
+		GetNewValues();
+
+		servo_json[id].min = 500;
+		servo_json[id].center = 1500;
+		servo_json[id].max = 2500;
+		servo_json[id].inverse = false;
+
+		MakeServoChannelsTable(servo_json);
+	}
+
+
+	function GetNewValues() {
+		for (var i = 0; i < servo_json.length; i++) {
+			servo_json[i].gpio = $("#servo_gpio" + i).val();
+			servo_json[i].min = $("#servo_min" + i).val();
+			servo_json[i].center = $("#servo_center" + i).val();
+			servo_json[i].max = $("#servo_max" + i).val();
+			servo_json[i].inverse = $("#servo_inverse" + i).prop('checked');
+		}
+	}
+
+</script>

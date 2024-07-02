@@ -1,0 +1,335 @@
+<div class="tab">
+	<button class="tablinks active" onclick="openTab(event, 'SystemFirmware')">Firmware</button>
+	<button class="tablinks" onclick="openTab(event, 'SystemOther')">Other</button>
+	<button class="tablinks" onclick="openTab(event, 'SystemAuth')">Authorization</button>
+	<button class="tablinks" onclick="openTab(event, 'SystemConfigs')">Configs</button>
+</div>
+
+
+<div id="SystemFirmware" class="tabcontent" style="display:block;">
+	<div class="option_title gray">Firmware update</div>
+
+	<form id="fw_update" action="upload.php" enctype="multipart/form-data" method="post">
+	<p><input type="file" name="file" id="file" size="40"></p>
+	<p><input id="upload_fw_button" type="submit" value="Upload file" style="background-color:red; color:white; padding:10px; border:0;"> <span id="fw_upload_status"></span></p>
+	</form>
+
+	<div class="option_title gray cs-normal">Download latest fw update file<br><a href="https://cosmostreamer.com/apps/cosmostreamer-ng/download/cosmostreamer-ng.csuf" target="_blank">https://cosmostreamer.com/apps/cosmostreamer-ng/download/cosmostreamer-ng.csuf</a></div>
+	<!--<div class="option_title gray cs-stereopi">Download latest fw update file<br><a href="https://cosmostreamer.com/apps/cosmostreamer-ng/download/stereopi.csuf" target="_blank">https://cosmostreamer.com/apps/cosmostreamer-ng/download/stereopi.csuf</a></div>-->
+</div>
+
+
+<div id="SystemAuth" class="tabcontent">
+	<p><span class="option_title"><input type="checkbox" id="web_auth_option" class="option_check"><label for="web_auth_option">Protect web admin page with password</label></span></p>
+
+	<p class="option_title">Username</p>
+	<div><input type="text" id="webauth_username_textarea" style="width:100%; height:30px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></div>
+
+	<p class="option_title">Password <span style="color:gray; margin-left:20px;">Can only be set, but cannot be restored for viewing</span></p>
+	<div><input type="password" id="webauth_userpass_textarea" style="width:100%; height:30px; margin-bottom:10px; background-color:transparent; padding:5px; color:white; border-width:1px;"></div>
+
+	<p><input id="webauth_save_button" type="button" value="Save" style="background-color:red; color:white; padding:10px; border:0; width:100px;"></p>
+</div>
+
+
+<div id="SystemOther" class="tabcontent">
+	<p><span class="option_title"><input type="checkbox" id="fs_rw_option" class="option_check"><label for="fs_rw_option">Mount file system in read-write mode at start</label></span></p>
+	<p><span class="option_title"><input type="checkbox" id="make_preview_option" class="option_check"><label for="make_preview_option">Make preview images</label></span></p>
+</div>
+
+
+<div id="SystemConfigs" class="tabcontent" style="display:none;">
+
+	<p>Cosmostreamer config</p>
+	<p><input id="config_export_button" type="button" value="Export Cosmostreamer config file" style="background-color:transparent; color:white; padding:10px; border-width:1px;"></p>
+
+	<p>
+	<form id="config_cs_import" action="config-import.php?file=cosmostreamer.conf" enctype="multipart/form-data" method="post">
+	<p>
+	<input id="config_cs_import_button" type="submit" value="Import file" style="background-color:red; color:white; padding:10px; border:0;">
+	<input type="file" name="file" id="csconfigfile" size="40" style="padding:10px;" accept=".conf">
+	<span id="config_cs_import_status"></span>
+	</p>
+	</form>
+	</p>
+
+	<p>&nbsp;</p>
+	<hr>
+
+	<p>Raspberry Pi config</p>
+	<p><input id="config_rpi_export_button" type="button" value="Export Raspberry Pi config file" style="background-color:transparent; color:white; padding:10px; border-width:1px;"></p>
+
+	<p>
+	<form id="config_rpi_import" action="config-import.php?file=config.txt" enctype="multipart/form-data" method="post">
+	<p>
+	<input id="config_rpi_import_button" type="submit" value="Import file" style="background-color:red; color:white; padding:10px; border:0;">
+	<input type="file" name="file" id="rpiconfigfile" size="40" style="padding:10px;" accept=".txt">
+	<span id="config_rpi_import_status"></span>
+	</p>
+	</form>
+	</p>
+	
+</div>
+
+
+<p style="margin-bottom:20px;">&nbsp;</p>
+
+<div><input id="restart_button" type="button" value="Restart server app" style="width:150px; padding:10px; background-color:transparent; color:white; margin-bottom:20px; border-width:1px;"></div>
+<div><input id="reboot_button"type="button" value="Reboot box" style="width:150px; padding:10px; background-color:transparent; color:white; border-width:1px;"></div>
+
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	$(".option_check").unbind("change");
+	$(".option_check").on("change", function(e) { ControlCheckboxClick($(this)); });
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"system"}');
+	}
+
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		$("form#fw_update").submit(function(e){
+			e.preventDefault();
+
+			if ($("#file").val() == "") {
+				alert('File not selected');
+				return;
+			}
+
+			if (!confirm("Are you sure?")) return;
+
+			var formData = new FormData($(this)[0]);
+
+			$("#fw_upload_status").html("Uploading...");
+
+			$.ajax({
+				url: $(this).attr("action"),
+				type: 'POST',
+				data: formData,
+				async: true,
+				cache: false,
+				contentType: false,
+				enctype: 'multipart/form-data',
+				processData: false,
+				success: function (response) {
+					if (response == 'ok') {
+						$("#fw_upload_status").html('Uploading done. Device will be rebooted.');
+					}
+					else {
+						$("#fw_upload_status").html('Uploading failed');
+					}
+				},
+				error: function () {
+					$("#fw_upload_status").html('Error');
+				},
+				xhr: function() {
+					var xhr = new window.XMLHttpRequest();
+					xhr.upload.addEventListener("progress", function(evt) {
+						if (evt.lengthComputable) {
+							var percentComplete = (evt.loaded / evt.total) * 100;
+							$("#fw_upload_status").html("Uploaded " + parseInt(percentComplete) + ' %');
+						}
+					}, false);
+					return xhr;
+				}
+			});
+			return false;
+		});
+
+		$("#restart_button").on("click", function(e) {
+			if (!confirm("Are you sure?")) return;
+			sendStringCommand('{"cmd":"restart"}');
+		});
+
+		$("#reboot_button").on("click", function(e) {
+			if (!confirm("Are you sure?")) return;
+			sendStringCommand('{"cmd":"reboot"}');
+		});
+
+
+		$('#webauth_save_button').on("click", function(e) {
+
+			var enabled = $("#web_auth_option").prop('checked') ? 1 : 0;
+			var username = $("#webauth_username_textarea").val();
+			var userpass = $("#webauth_userpass_textarea").val();
+
+			if (enabled) {
+				if (username == "") {
+					alert("Username can't be empty");
+					return;
+				}
+				if (userpass == "") {
+					alert("Password can't be empty");
+					return;
+				}
+			}
+
+			if (!confirm("Are you sure?")) return;
+
+			var cmd = '{"cmd":"updateconfig","param":"web_auth","value":"' + enabled + '","value2":"' + username + '","value3":"' + userpass + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+
+		$("#config_export_button").on("click", function(e) {
+			window.open('config-export.php?file=cosmostreamer.conf');
+		});
+
+		$("#config_rpi_export_button").on("click", function(e) {
+			window.open('config-export.php?file=config.txt');
+		});
+
+		$("form#config_cs_import").submit(function(e){
+			e.preventDefault();
+
+			if ($("#csconfigfile").val() == "") {
+				alert('File not selected');
+				return;
+			}
+
+			if (!confirm("Are you sure?")) return;
+
+			var formData = new FormData($(this)[0]);
+
+			$("#config_cs_import_status").html("Uploading...");
+
+			$.ajax({
+				url: $(this).attr("action"),
+				type: 'POST',
+				data: formData,
+				async: true,
+				cache: false,
+				contentType: false,
+				enctype: 'multipart/form-data',
+				processData: false,
+				success: function (response) {
+					if (response == 'ok') {
+						$("#config_cs_import_status").html('Uploading done. Reboot device for applying new config.');
+					}
+					else {
+						$("#config_cs_import_status").html('Uploading failed: ' + response);
+					}
+				},
+				error: function () {
+					$("#config_cs_import_status").html('Error');
+				},
+				xhr: function() {
+					var xhr = new window.XMLHttpRequest();
+					xhr.upload.addEventListener("progress", function(evt) {
+						if (evt.lengthComputable) {
+							var percentComplete = (evt.loaded / evt.total) * 100;
+							$("#config_cs_import_status").html("Uploaded " + parseInt(percentComplete) + ' %');
+						}
+					}, false);
+					return xhr;
+				}
+			});
+			return false;
+		});
+
+		$("form#config_rpi_import").submit(function(e){
+			e.preventDefault();
+
+			if ($("#rpiconfigfile").val() == "") {
+				alert('File not selected');
+				return;
+			}
+
+			if (!confirm("Are you sure?")) return;
+
+			var formData = new FormData($(this)[0]);
+
+			$("#config_rpi_import_status").html("Uploading...");
+
+			$.ajax({
+				url: $(this).attr("action"),
+				type: 'POST',
+				data: formData,
+				async: true,
+				cache: false,
+				contentType: false,
+				enctype: 'multipart/form-data',
+				processData: false,
+				success: function (response) {
+					if (response == 'ok') {
+						$("#config_rpi_import_status").html('Uploading done. Reboot device for applying new config.');
+					}
+					else {
+						$("#config_rpi_import_status").html('Uploading failed: ' + response);
+					}
+				},
+				error: function () {
+					$("#config_rpi_import_status").html('Error');
+				},
+				xhr: function() {
+					var xhr = new window.XMLHttpRequest();
+					xhr.upload.addEventListener("progress", function(evt) {
+						if (evt.lengthComputable) {
+							var percentComplete = (evt.loaded / evt.total) * 100;
+							$("#config_rpi_import_status").html("Uploaded " + parseInt(percentComplete) + ' %');
+						}
+					}, false);
+					return xhr;
+				}
+			});
+			return false;
+		});
+
+	}
+
+	function ParseDeviceConfig(json) {
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		$("#fs_rw_option").prop("checked", config.fs_rw);
+		$("#make_preview_option").prop("checked", config.make_preview);
+		$("#web_auth_option").prop("checked", config.webauth);
+		$("#webauth_username_textarea").val(config.webusername);
+		$("#webauth_userpass_textarea").val("");
+
+		if (config.app_type == APP_TYPE.APP_CS_STEREOPI) {
+			$(".cs-normal").css('display', 'none');
+			$(".cs-stereopi").css('display', 'block');
+		} else {
+			$(".cs-normal").css('display', 'block');
+			$(".cs-stereopi").css('display', 'none');
+		}
+	}
+
+
+	function ControlCheckboxClick(item) {
+
+		var item_id = $(item).attr("id");
+		var item_value = $(item).prop("checked") ? 1 : 0;
+
+		switch (item_id) {
+			case "fs_rw_option":
+				if (!confirm("Are you sure?")) {
+					$(item).prop('checked', item_value == 1 ? 0 : 1);
+					return;
+				}
+				sendStringCommand('{"cmd":"updateconfig","param":"fs_rw","value":"' + item_value + '","value2":""}');
+			break;
+
+			case "make_preview_option":
+				sendStringCommand('{"cmd":"updateconfig","param":"make_preview","value":"' + item_value + '","value2":""}');
+			break;
+		}
+	}
+
+</script>

@@ -1,0 +1,320 @@
+<div class="tab">
+	<button class="tablinks active" onclick="openTab(event, 'SplashIntroSplashscreen')">Splash screen</button>
+	<button class="tablinks" onclick="openTab(event, 'SplashIntroLogo')">Logo</button>
+	<button class="tablinks" onclick="openTab(event, 'SplashIntroBgVideo')">Background video</button>
+	<button class="tablinks" onclick="openTab(event, 'SplashIntroBgAudio')">Background audio</button>
+</div>
+
+
+<div id="SplashIntroSplashscreen" class="tabcontent" style="display:block;">
+	<p><img id="current_splash_image" src="/media.php?media=splash&action=get" height="50%"></p>
+
+	<div class="option_title gray">Set new splash image (JPG or PNG file)</div>
+
+	<form id="splash_upload" action="/media.php?media=splash&action=set" enctype="multipart/form-data" method="post">
+	<p><input type="file" name="file" id="splash_file" size="40"></p>
+	<p><input id="upload_splash_button" type="submit" value="Upload splash image" style="background-color:red; color:white; padding:10px; border:0;"></p>
+	</form>
+
+	<p id="splash_status"></p>
+</div>
+
+<div id="SplashIntroLogo" class="tabcontent">
+	<p><img id="current_logo_image" src="/media.php?media=logo&action=get" height="50%"></p>
+
+	<p><span class="option_title"><input type="checkbox" id="logo_hdmi0_enabled_option" class="option_check"><label for="logo_hdmi0_enabled_option">Show logo on HDMI0 (or any main) display</label></span></p>
+	<p><span class="option_title"><input type="checkbox" id="logo_hdmi1_enabled_option" class="option_check"><label for="logo_hdmi1_enabled_option">Show logo on HDMI1 display</label></span></p>
+	<p><span class="option_title"><input type="checkbox" id="logo_dsi_enabled_option" class="option_check"><label for="logo_dsi_enabled_option">Show logo on DSI display</label></span></p>
+
+	<div class="option_title gray">Set new logo image (fullscreen PNG file)</div>
+
+	<form id="logo_upload" action="/media.php?media=logo&action=set" enctype="multipart/form-data" method="post">
+	<p><input type="file" name="file" id="logo_file" size="40"></p>
+	<p><input id="upload_logo_button" type="submit" value="Upload logo image" style="background-color:red; color:white; padding:10px; border:0;"></p>
+	</form>
+
+	<p id="logo_status"></p>
+</div>
+
+<div id="SplashIntroBgVideo" class="tabcontent">
+	<p class="option_title gray">Video shown on display and in streams when no live video from cameras</p>
+
+	<p><span class="option_title"><input type="checkbox" id="intro_enabled_option" class="option_check"><label for="intro_enabled_option">Enabled</label></span></p>
+
+	<p class="option_title">Upload the new background video. MP4 file, max file size 200Mb</p>
+	<form id="intro_upload" action="/media.php?media=intro&action=set" enctype="multipart/form-data" method="post">
+	<p><input type="file" name="file" id="intro_file" size="40"></p>
+	<p><input id="upload_intro_button" type="submit" value="Upload video" style="background-color:red; color:white; padding:10px; border:0;"></p>
+	</form>
+
+	<p id="intro_status"></p>
+</div>
+
+<div id="SplashIntroBgAudio" class="tabcontent">
+	<p class="option_title gray">Looped audio when no live audio from capture</p>
+
+	<p><span class="option_title"><input type="checkbox" id="bgaudio_enabled_option" class="option_check"><label for="bgaudio_enabled_option">Enabled</label></span></p>
+
+	<p class="option_title">Upload the new background audio. MP3 file</p>
+	<form id="bgaudio_upload" action="/media.php?media=bgaudio&action=set" enctype="multipart/form-data" method="post">
+	<p><input type="file" name="file" id="bgaudio_file" size="40"></p>
+	<p><input id="upload_bgaudio_button" type="submit" value="Upload audio" style="background-color:red; color:white; padding:10px; border:0;"></p>
+	</form>
+
+	<p id="bgaudio_status"></p>
+</div>
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	$(".option_check").unbind("change");
+	$(".option_check").on("change", function(e) { ControlCheckboxClick($(this)); });
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"logointro"}');
+	}
+
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		$("form#splash_upload").submit(function(e){
+			e.preventDefault();
+
+			if ($("#splash_file").val() == "") {
+				alert('File not selected');
+				return;
+			}
+
+			$("#upload_splash_button").css('background-color','darkred');
+			$("#splash_status").html('Uploading...');
+
+			var formData = new FormData($(this)[0]);
+
+			$.ajax({
+				url: $(this).attr("action"),
+				type: 'POST',
+				data: formData,
+				async: true,
+				cache: false,
+				contentType: false,
+				enctype: 'multipart/form-data',
+				processData: false,
+				success: function (response) {
+					if (response == 'ok') {
+						$("#splash_status").html('Done');
+						$("#current_splash_image").attr('src', '/media.php?media=splash&action=get');
+					}
+					else {
+						$("#splash_status").html('Failed');
+					}
+				},
+				error: function () {
+					$("#splash_status").html('Error');
+				},
+				xhr: function() {
+					var xhr = new window.XMLHttpRequest();
+					xhr.upload.addEventListener("progress", function(evt) {
+						if (evt.lengthComputable) {
+							var percentComplete = (evt.loaded / evt.total) * 100;
+							$("#splash_status").html(parseInt(percentComplete) + ' %');
+						}
+					}, false);
+					return xhr;
+				}
+			});
+			return false;
+		});
+
+		$("form#logo_upload").submit(function(e){
+			e.preventDefault();
+
+			if ($("#logo_file").val() == "") {
+				alert('File not selected');
+				return;
+			}
+
+			$("#upload_logo_button").css('background-color','darkred');
+			$("#logo_status").html('Uploading...');
+
+			var formData = new FormData($(this)[0]);
+
+			$.ajax({
+				url: $(this).attr("action"),
+				type: 'POST',
+				data: formData,
+				async: true,
+				cache: false,
+				contentType: false,
+				enctype: 'multipart/form-data',
+				processData: false,
+				success: function (response) {
+					if (response == 'ok') {
+						$("#logo_status").html('Done');
+						$("#current_logo_image").attr('src', '/media.php?media=logo&action=get');
+					}
+					else {
+						$("#logo_status").html('Failed');
+					}
+				},
+				error: function () {
+					$("#logo_status").html('Error');
+				},
+				xhr: function() {
+					var xhr = new window.XMLHttpRequest();
+					xhr.upload.addEventListener("progress", function(evt) {
+						if (evt.lengthComputable) {
+							var percentComplete = (evt.loaded / evt.total) * 100;
+							$("#logo_status").html(parseInt(percentComplete) + ' %');
+						}
+					}, false);
+					return xhr;
+				}
+			});
+			return false;
+		});
+
+		$("form#intro_upload").submit(function(e){
+			e.preventDefault();
+
+			if ($("#intro_file").val() == "") {
+				alert('File not selected');
+				return;
+			}
+
+			$("#upload_intro_button").css('background-color','darkred');
+			$("#intro_status").html('Uploading...');
+
+			var formData = new FormData($(this)[0]);
+
+			$.ajax({
+				url: $(this).attr("action"),
+				type: 'POST',
+				data: formData,
+				async: true,
+				cache: false,
+				contentType: false,
+				enctype: 'multipart/form-data',
+				processData: false,
+				success: function (response) {
+					if (response == 'ok') {
+						$("#intro_status").html('Done');
+					}
+					else {
+						$("#intro_status").html('Failed');
+					}
+				},
+				error: function () {
+					$("#intro_status").html('Error');
+				},
+				xhr: function() {
+        	var xhr = new window.XMLHttpRequest();
+        	xhr.upload.addEventListener("progress", function(evt) {
+            if (evt.lengthComputable) {
+              var percentComplete = (evt.loaded / evt.total) * 100;
+							$("#intro_status").html(parseInt(percentComplete) + ' %');
+            }
+        	}, false);
+        	return xhr;
+    		}
+			});
+
+			return false;
+		});
+
+		$("form#bgaudio_upload").submit(function(e){
+			e.preventDefault();
+
+			if ($("#bgaudio_file").val() == "") {
+				alert('File not selected');
+				return;
+			}
+
+			$("#upload_bgaudio_button").css('background-color','darkred');
+			$("#bgaudio_status").html('Uploading...');
+
+			var formData = new FormData($(this)[0]);
+
+			$.ajax({
+				url: $(this).attr("action"),
+				type: 'POST',
+				data: formData,
+				async: true,
+				cache: false,
+				contentType: false,
+				enctype: 'multipart/form-data',
+				processData: false,
+				success: function (response) {
+					if (response == 'ok') {
+						$("#bgaudio_status").html('Done');
+					}
+					else {
+						$("#bgaudio_status").html('Failed');
+					}
+				},
+				error: function () {
+					$("#bgaudio_status").html('Error');
+				},
+				xhr: function() {
+					var xhr = new window.XMLHttpRequest();
+					xhr.upload.addEventListener("progress", function(evt) {
+						if (evt.lengthComputable) {
+							var percentComplete = (evt.loaded / evt.total) * 100;
+							$("#bgaudio_status").html(parseInt(percentComplete) + ' %');
+						}
+					}, false);
+					return xhr;
+				}
+			});
+			return false;
+		});
+	}
+
+	function ParseDeviceConfig(json) {
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		$("#intro_enabled_option").prop("checked", config.intro_enabled);
+		$("#bgaudio_enabled_option").prop("checked", config.bgaudio_enabled);
+		$("#logo_hdmi0_enabled_option").prop("checked", config.logo_hdmi0_enabled);
+		$("#logo_hdmi1_enabled_option").prop("checked", config.logo_hdmi1_enabled);
+		$("#logo_dsi_enabled_option").prop("checked", config.logo_dsi_enabled);
+	}
+
+
+	function ControlCheckboxClick(item) {
+
+		var item_id = $(item).attr("id");
+		var item_value = $(item).prop("checked") ? 1 : 0;
+
+		switch (item_id) {
+			case "intro_enabled_option":
+				sendStringCommand('{"cmd":"updateconfig","param":"video_intro","value":"' + item_value + '","value2":""}');
+			break;
+			case "bgaudio_enabled_option":
+				sendStringCommand('{"cmd":"updateconfig","param":"bgaudio","value":"' + item_value + '","value2":""}');
+			break;
+
+			case "logo_hdmi0_enabled_option":
+				sendStringCommand('{"cmd":"updateconfig","param":"logo","value":"' + item_value + '","value2":"hdmi0"}');
+			break;
+			case "logo_hdmi1_enabled_option":
+				sendStringCommand('{"cmd":"updateconfig","param":"logo","value":"' + item_value + '","value2":"hdmi1"}');
+			break;
+			case "logo_dsi_enabled_option":
+				sendStringCommand('{"cmd":"updateconfig","param":"logo","value":"' + item_value + '","value2":"dsi"}');
+			break;
+		}
+	}
+
+</script>

@@ -1,0 +1,499 @@
+<p>
+	<span class="option_title"><input type="checkbox" id="rc_enabled"><label for="rc_enabled">Enabled</label></span>
+	<span class="option_title" style="margin-left:50px;"><input type="checkbox" id="updates_enabled" checked><label for="updates_enabled">Real-time values</label></span>
+</p>
+
+<div class="tab">
+	<button class="tablinks active" onclick="openTab(event, 'RC1_tab')">RC1</button>
+	<button class="tablinks" onclick="openTab(event, 'RC2_tab')">RC2</button>
+	<button class="tablinks" onclick="openTab(event, 'SBUS_tab')">SBus params</button>
+</div>
+
+<div id="RC1_tab" class="tabcontent" style="display:block;">
+	<p class="option_title gray">Mode</p>
+	<select id="rc1_mode_option" class="option_el" style="width:250px; margin:5px;">
+		<option></option>
+		<option>PWM</option>
+		<option>PPM</option>
+		<option>JoystickAxes</option>
+		<option>JoystickButtons</option>
+		<option>RemoteJoystickAxes</option>
+		<option>RemoteJoystickButtons</option>
+	</select>
+
+	<p>
+		<input type="button" id="rc1_calibrate_button" value="Calibrate min/max" style="padding:10px; background-color:transparent; color:white; border-width:1px;">
+		<input type="button" id="rc1_calfinish_button" value="Finish calibration" style="padding:10px; background-color:red; color:white; border-width:0px; display:none;">
+		<input type="button" id="rc1_calcenter_button" value="Set center" style="padding:10px; background-color:transparent; color:white; border-width:1px;">
+	</p>
+
+	<div id="rc0_table_container" style="overflow:scroll; width:100px;">
+		<div id="rc0_table_content"></div>
+	</div>
+
+	<p>
+		<input type="button" id="rc1_save_button" value="Save values for RC1" style="padding:10px; background-color:red; color:white; border-width:0px;">
+		<input type="button" id="rc1_clear_button" value="Clear" style="padding:10px; background-color:transparent; color:white; border-width:1px;">
+	</p>
+
+</div>
+
+<div id="RC2_tab" class="tabcontent">
+	<p class="option_title gray">Mode</p>
+	<select id="rc2_mode_option" class="option_el" style="width:250px; margin:5px;">
+		<option></option>
+		<option>PPM</option>
+		<option>SBus</option>
+		<option>JoystickAxes</option>
+		<option>JoystickButtons</option>
+		<option>RemoteJoystickAxes</option>
+		<option>RemoteJoystickButtons</option>
+	</select>
+
+	<p>
+		<input type="button" id="rc2_calibrate_button" value="Calibrate min/max" style="padding:10px; background-color:transparent; color:white; border-width:1px;">
+		<input type="button" id="rc2_calfinish_button" value="Finish calibration" style="padding:10px; background-color:red; color:white; border-width:0px; display:none;">
+		<input type="button" id="rc2_calcenter_button" value="Set center" style="padding:10px; background-color:transparent; color:white; border-width:1px;">
+	</p>
+
+	<div id="rc1_table_container" style="overflow:scroll; width:100px;">
+		<div id="rc1_table_content"></div>
+	</div>
+
+	<p>
+		<input type="button" id="rc2_save_button" value="Save values for RC2" style="padding:10px; background-color:red; color:white; border-width:0px;">
+		<input type="button" id="rc2_clear_button" value="Clear" style="padding:10px; background-color:transparent; color:white; border-width:1px;">
+	</p>
+
+</div>
+
+<div id="SBUS_tab" class="tabcontent">
+
+	<p>UART device for SBus input. By default /dev/ttyAMA0 is used.</p>
+
+	<p>Depends on param "dtoverlay=miniuart-bt" in /boot/config.txt file:</p>
+	<p>If param "dtoverlay=miniuart-bt" is enabled: RC SBus may use hardware UART /dev/ttyAMA0, Bluetooth use software UART device /dev/ttyS0</p>
+	<p>If param "dtoverlay=miniuart-bt" is disabled: RC SBus may use software UART /dev/ttyS0, Bluetooth use hardware UART device /dev/ttyAMA0</p>
+
+
+	<p>
+		On Raspberry Pi 4 possible to use additional UART. Need to add param into file /boot/config.txt <br>
+		<p>
+		dtoverlay=uart2  for using GPIO1 as input<br> 
+		dtoverlay=uart3  for using GPIO5 as input<br> 
+		dtoverlay=uart4  for using GPIO9 as input<br> 
+		dtoverlay=uart5  for using GPIO13 as input<br> 
+		</p>
+		After this /dev/ttyAMA1 will be an additional UART and you could use it for SBus
+	</p>
+
+	<select id="sbus_dev_option" class="option_el" style="width:250px; margin:5px;">
+	</select>
+
+	<p>
+		<input type="button" id="sbus_save_button" value="Save SBus params" style="padding:10px; background-color:red; color:white; border-width:0px;">
+	</p>
+</div>
+
+<script>
+	var interval;
+	var prev_values = new Array(2);
+	for (var i = 0; i < prev_values.length; i++) prev_values[i] = new Array(16);
+
+	DeviceConfigInit();
+	ConfigRequest();
+	RequestRC();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"rc"}');
+	}
+
+	function RequestRC() {
+		sendStringCommand('{"cmd":"rc","param":"get-channels"}');
+	}
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		MakeTable(0);
+		MakeTable(1);
+
+		ResizeTable($("#RC1_tab").width(), $("#RC1_tab").height(), window.orientation);
+
+		$(window).resize(function() {
+			ResizeTable($("#RC1_tab").width(), $("#RC1_tab").height(), window.orientation);
+		});
+
+		$("#rc_enabled").on("change", UpdateRCConfig);
+		$("#rc1_mode_option").on("change", UpdateRCConfig);
+		$("#rc2_mode_option").on("change", UpdateRCConfig);
+
+		$("#rc1_calibrate_button").on("click", function(e) {
+			if (!confirm('Move RC1 all axis, triggers and sliders to the minimal and maximal positions. After that click "finish calibration" button')) return;
+			$("#updates_enabled").prop('checked', true);
+			sendStringCommand('{"cmd":"rc","param":"calibrate-minmax","value":"0"}');
+		});
+		$("#rc2_calibrate_button").on("click", function(e) {
+			if (!confirm('Move RC2 all axis, triggers and sliders to the minimal and maximal positions. After that click "finish calibration" button')) return;
+			$("#updates_enabled").prop('checked', true);
+			sendStringCommand('{"cmd":"rc","param":"calibrate-minmax","value":"1"}');
+		});
+		$("#rc1_calfinish_button").on("click", function(e) {
+			sendStringCommand('{"cmd":"rc","param":"finish-minmax","value":"0"}');
+			$(this).css('background-color','darkred');
+		});
+		$("#rc2_calfinish_button").on("click", function(e) {
+			sendStringCommand('{"cmd":"rc","param":"finish-minmax","value":"1"}');
+			$(this).css('background-color','darkred');
+		});
+		$("#rc1_calcenter_button").on("click", function(e) {
+			//if (!confirm('Move RC1 all axis and sliders to the center position and click OK to continue or Cancel to cancel')) return;
+			sendStringCommand('{"cmd":"rc","param":"set-center","value":"0"}');
+		});
+		$("#rc2_calcenter_button").on("click", function(e) {
+			//if (!confirm('Move RC2 all axis and sliders to the center position and click OK to continue or Cancel to cancel')) return;
+			sendStringCommand('{"cmd":"rc","param":"set-center","value":"1"}');
+		});
+
+
+		$("#rc1_save_button").on("click", function(e) { SaveRCSettings(0); $(this).css('background-color','darkred'); });
+		$("#rc2_save_button").on("click", function(e) { SaveRCSettings(1); $(this).css('background-color','darkred'); });
+		$("#rc1_clear_button").on("click", function(e) { ClearRCSettings(0); });
+		$("#rc2_clear_button").on("click", function(e) { ClearRCSettings(1); });
+
+		$("#sbus_save_button").on("click", function(e) { SaveSbusParams(this, 1); });
+
+		RC_StopTimer();
+		RC_StartTimer();
+	}
+
+
+	function ParseDeviceConfig(json) {
+		//console.log(json);
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd == "rc1") { ParseRCValues(0, config); return; }
+		if (config.cmd == "rc2") { ParseRCValues(1, config); return; }
+
+		if (config.cmd == "config_answer") {
+			$("#rc_enabled").prop("checked", config.enabled);
+
+			var uarts = config.uarts.split(",");
+			$("#sbus_dev_option").append(new Option("", ""));
+			for (var i in uarts) {
+				var item = "/dev/" + uarts[i];
+				$("#sbus_dev_option").append(new Option(item, item));
+			}
+
+			$("#sbus_dev_option").val(config.rc2_sbus_dev);
+
+			switch (config.rc1_mode) {
+				case "pwm": $("#rc1_mode_option").prop('selectedIndex',1); break;
+				case "ppm": $("#rc1_mode_option").prop('selectedIndex',2); break;
+				case "joystickaxes": $("#rc1_mode_option").prop('selectedIndex',3); break;
+				case "joystickbuttons": $("#rc1_mode_option").prop('selectedIndex',4); break;
+				case "remotejoystickaxes": $("#rc1_mode_option").prop('selectedIndex',5); break;
+				case "remotejoystickbuttons": $("#rc1_mode_option").prop('selectedIndex',6); break;
+				default: $("#rc1_mode_option").prop('selectedIndex',0);
+			}
+			switch (config.rc2_mode) {
+				case "ppm": $("#rc2_mode_option").prop('selectedIndex',1); break;
+				case "sbus": $("#rc2_mode_option").prop('selectedIndex',2); break;
+				case "joystickaxes": $("#rc2_mode_option").prop('selectedIndex',3); break;
+				case "joystickbuttons": $("#rc2_mode_option").prop('selectedIndex',4); break;
+				case "remotejoystickaxes": $("#rc2_mode_option").prop('selectedIndex',5); break;
+				case "remotejoystickbuttons": $("#rc2_mode_option").prop('selectedIndex',6); break;
+				default: $("#rc2_mode_option").prop('selectedIndex',0);
+			}
+		}
+	}
+
+
+	function UpdateRCConfig() {
+		var enabled = $("#rc_enabled").prop('checked') ? 1 : 0;
+		var rc1_mode = $("#rc1_mode_option").val().toLowerCase();
+		var rc2_mode = $("#rc2_mode_option").val().toLowerCase();
+		var cmd = '{"cmd":"updateconfig","param":"rc","value":"' + enabled + '","value2":"' + rc1_mode + '","value3":"' + rc2_mode + '"}';
+		sendStringCommand(cmd);
+		//$(this).css('background-color','darkred');
+	}
+
+
+	function SettingsRCUpdateStatus(rc1state, rc2state) {
+		switch (rc1state) {
+			case 2: /// Calibration min/max is active
+				$("#rc1_calibrate_button").css("display","none");
+				$("#rc1_calcenter_button").css("display","none");
+				$("#rc1_calfinish_button").css("display","inline");
+			break;
+			default:
+				$("#rc1_calibrate_button").css("display","inline");
+				$("#rc1_calcenter_button").css("display","inline");
+				$("#rc1_calfinish_button").css("display","none");
+			break;
+		}
+
+		switch (rc2state) {
+			case 2: /// Calibration min/max is active
+				$("#rc2_calibrate_button").css("display","none");
+				$("#rc2_calcenter_button").css("display","none");
+				$("#rc2_calfinish_button").css("display","inline");
+			break;
+			default:
+				$("#rc2_calibrate_button").css("display","inline");
+				$("#rc2_calcenter_button").css("display","inline");
+				$("#rc2_calfinish_button").css("display","none");
+			break;
+		}
+	}
+
+
+	function ParseRCValues(id, json) {
+
+		var update_enabled = $("#updates_enabled").prop("checked");
+
+		//alert('id=' + id + ' ' + JSON.stringify(json));		
+
+		for (var i = 0; i < json.ch.length; i++) {
+
+			/// If limit == 0 set 100
+			if (json.ch[i].l == 0) json.ch[i].l = 100;
+
+			if (update_enabled) {
+				$('#rc' + id + '_value' + i).html(json.ch[i].val.toFixed(3));
+				$('#rc' + id + '_raw' + i).html(json.ch[i].raw);
+				$('#rc' + id + '_min' + i).html(json.ch[i].min);
+				$('#rc' + id + '_max' + i).html(json.ch[i].max);
+				$('#rc' + id + '_center' + i).html(json.ch[i].c);
+				$('#rc' + id + '_func' + i).prop('selectedIndex',json.ch[i].f);
+				$('#rc' + id + '_inv' + i).prop('checked',json.ch[i].i);
+				$('#rc' + id + '_lim' + i).val(json.ch[i].l);
+				$('#rc' + id + '_exp' + i).prop('checked',json.ch[i].e);
+				$('#rc' + id + '_dead' + i).val(json.ch[i].d);
+			}
+
+			var delta = 0;
+
+			try {
+				/// Calculate delta with prev raw value
+				delta = prev_values[id][i] - json.ch[i].raw;
+			} catch (e) {}
+
+			/// Save prev raw values
+			prev_values[id][i] = json.ch[i].raw;
+
+			$('#rc' + id + '_tr' + i).css('background-color', Math.abs(delta) > 20 ? '#883333' : 'transparent');
+		}
+	}
+
+
+	function ResizeTable(width, height, orientation) {
+		$("#rc0_table_container").css("width", width);
+		$("#rc0_table").css("width", width);
+
+		$("#rc1_table_container").css("width", width);
+		$("#rc1_table").css("width", width);
+	}
+
+
+	function MakeTable(id) {
+
+		var table_tpl = '<table id="rc{id}_table" border="0" cellspacing="0" cellpadding="2" style="font-size:12px; table-layout:fixed;">';
+		table_tpl += '<tr>';
+		table_tpl += '<td width="20">Ch</td>';
+		table_tpl += '<td width="50">Value</td>';
+		table_tpl += '<td width="40">Raw</td>';
+		table_tpl += '<td width="40">Min</td>';
+		table_tpl += '<td width="40">Center</td>';
+		table_tpl += '<td width="40">Max</td>';
+		table_tpl += '<td width="100">Function</td>';
+		table_tpl += '<td width="40">Inv</td>';
+		table_tpl += '<td width="50">Limit (%)</td>';
+		table_tpl += '<td width="40">Exp</td>';
+		table_tpl += '<td width="40">Dead</td>';
+		table_tpl += '</tr>';
+		table_tpl += '{tr}';
+		table_tpl += '</table>';
+
+		var tr_tpl = '<tr id="rc{id}_tr{ch}">';
+		tr_tpl += '<td>{ch_h}</td>';
+		tr_tpl += '<td id="rc{id}_value{ch}"></td>';
+		tr_tpl += '<td id="rc{id}_raw{ch}"></td>';
+		tr_tpl += '<td id="rc{id}_min{ch}"></td>';
+		tr_tpl += '<td id="rc{id}_center{ch}"></td>';
+		tr_tpl += '<td id="rc{id}_max{ch}"></td>';
+		tr_tpl += '<td><select id="rc{id}_func{ch}" style="width:150px;">';
+		tr_tpl += '<option></option>';
+		tr_tpl += '<option>menu</option>';
+		tr_tpl += '<option>pan</option>';
+		tr_tpl += '<option>tilt</option>';
+		tr_tpl += '<option>roll</option>';
+		tr_tpl += '<option>smooth</option>';
+		tr_tpl += '<option>center</option>';
+		tr_tpl += '<option>orientation lock</option>';
+		tr_tpl += '<option>orientation lock button</option>';
+		tr_tpl += '<option>shot/rec</option>';
+		tr_tpl += '<option>photo/video</option>';
+		tr_tpl += '<option>focus mode</option>';
+		tr_tpl += '<option>manual focus in</option>';
+		tr_tpl += '<option>manual focus out</option>';
+		tr_tpl += '<option>manual focus in/out</option>';
+		tr_tpl += '<option>zoom in</option>';
+		tr_tpl += '<option>zoom out</option>';
+		tr_tpl += '<option>zoom in/out</option>';
+		tr_tpl += '<option>dzoom in</option>';
+		tr_tpl += '<option>dzoom out</option>';
+		tr_tpl += '<option>dzoom in/out</option>';
+		tr_tpl += '<option>ae lock/unlock</option>';
+		tr_tpl += '<option>tracking toggle</option>';
+		tr_tpl += '<option>image mode switch</option>';
+		tr_tpl += '<option>image mode next</option>';
+		tr_tpl += '<option>image mode prev</option>';
+		tr_tpl += '<option>iso switch</option>';
+		tr_tpl += '<option>iso next</option>';
+		tr_tpl += '<option>iso prev</option>';
+		tr_tpl += '<option>shutter switch</option>';
+		tr_tpl += '<option>shutter next</option>';
+		tr_tpl += '<option>shutter prev</option>';
+		tr_tpl += '<option>aperture switch</option>';
+		tr_tpl += '<option>aperture next</option>';
+		tr_tpl += '<option>aperture prev</option>';
+		tr_tpl += '<option>color switch</option>';
+		tr_tpl += '<option>color next</option>';
+		tr_tpl += '<option>color prev</option>';
+		tr_tpl += '<option>wb switch</option>';
+		tr_tpl += '<option>wb next</option>';
+		tr_tpl += '<option>wb prev</option>';
+		tr_tpl += '<option>ev</option>';
+		tr_tpl += '<option>ev switch</option>';
+		tr_tpl += '<option>ev next</option>';
+		tr_tpl += '<option>ev prev</option>';
+		tr_tpl += '<option>shot/rec switch</option>';
+		tr_tpl += '<option>servo1</option>';
+		tr_tpl += '<option>servo2</option>';
+		tr_tpl += '<option>servo3</option>';
+		tr_tpl += '<option>servo4</option>';
+		tr_tpl += '<option>am next/prev</option>';
+		tr_tpl += '<option>am start/stop</option>';
+		tr_tpl += '<option>wiral move/stop</option>';
+		tr_tpl += '<option>wiral tictac</option>';
+		tr_tpl += '<option>wiral tictac switch</option>';
+		tr_tpl += '<option>bt gimbal mode</option>';
+		tr_tpl += '<option>manual focus in/out</option>';
+		tr_tpl += '</select></td>';
+		tr_tpl += '<td><input id="rc{id}_inv{ch}" type="checkbox" style="width:40px; padding:0;"></td>';
+		tr_tpl += '<td><input id="rc{id}_lim{ch}" type="text" value="100" style="width:50px; padding:0;"></td>';
+		tr_tpl += '<td><input id="rc{id}_exp{ch}" type="checkbox" style="width:40px; padding:0;"></td>';
+		tr_tpl += '<td><input id="rc{id}_dead{ch}" type="text" style="width:40px; padding:0;" value="1000"></td>';
+		tr_tpl += '</tr>';
+
+		var content = table_tpl;
+
+		var channels_tr = "";
+		for (var i = 0; i < 16; i++) {
+			var re;
+			var tr_content = tr_tpl;
+
+			re = new RegExp('{ch_h}', 'g');
+			tr_content = tr_content.replace(re, i + 1);
+
+			re = new RegExp('{ch}', 'g');
+			tr_content = tr_content.replace(re, i);
+
+			re = new RegExp('{id}', 'g');
+			tr_content = tr_content.replace(re, id);
+
+			channels_tr+= tr_content;
+		}
+
+		content = content.replace('{tr}', channels_tr);
+
+		if (id == 0) $("#rc0_table_content").html(content);
+		if (id == 1) $("#rc1_table_content").html(content);
+	}
+
+
+	function ClearRCSettings(id) {
+		for (var i = 0; i < 16; i++) {
+			$('#rc' + id + '_min' + i).html("0");
+			$('#rc' + id + '_max' + i).html("0");
+			$('#rc' + id + '_center' + i).html("0");
+			$('#rc' + id + '_inv' + i).prop('checked',false);
+			$('#rc' + id + '_dead' + i).val(0);
+			$('#rc' + id + '_exp' + i).prop('checked',false);
+			$('#rc' + id + '_lim' + i).val(100);
+			$('#rc' + id + '_func' + i).prop('selectedIndex',0);
+		}
+	}
+
+
+	function SaveRCSettings(id) {
+		var cmd = '{"cmd":"rc","param":"set-config","value":"' + id + '","value2":"[{list}]"}';
+		var list = "";
+		for (var i = 0; i < 8; i++) {
+			var min = $('#rc' + id + '_min' + i).html();
+			var max = $('#rc' + id + '_max' + i).html();
+			var center = $('#rc' + id + '_center' + i).html();
+			var inv = $('#rc' + id + '_inv' + i).prop('checked') ? 1 : 0;
+			var dead = $('#rc' + id + '_dead' + i).val();
+			var exp = $('#rc' + id + '_exp' + i).prop('checked') ? 1 : 0;
+			var lim = $('#rc' + id + '_lim' + i).val();
+			var func = $('#rc' + id + '_func' + i).prop('selectedIndex');
+
+			if (i > 0) list += ',';
+			list += '{\\"ch\\":' + (i + 1) + ',\\"min\\":' + min + ',\\"max\\":' + max + ',\\"c\\":' + center +',\\"i\\":' + inv + ',\\"d\\":' + dead + ',\\"e\\":' + exp + ',\\"l\\":' + lim + ',\\"f\\":' + func + '}';
+		}
+
+		cmd = cmd.replace('{list}', list);
+		sendStringCommand(cmd);
+
+		cmd = '{"cmd":"rc","param":"set-config","value":"' + id + '","value2":"[{list}]"}';
+		list = "";
+		for (var i = 8; i < 16; i++) {
+			var min = $('#rc' + id + '_min' + i).html();
+			var max = $('#rc' + id + '_max' + i).html();
+			var center = $('#rc' + id + '_center' + i).html();
+			var inv = $('#rc' + id + '_inv' + i).prop('checked') ? 1 : 0;
+			var dead = $('#rc' + id + '_dead' + i).val();
+			var exp = $('#rc' + id + '_exp' + i).prop('checked') ? 1 : 0;
+			var lim = $('#rc' + id + '_lim' + i).val();
+			var func = $('#rc' + id + '_func' + i).prop('selectedIndex');
+
+			if (i > 8) list += ',';
+			list += '{\\"ch\\":' + (i + 1) + ',\\"min\\":' + min + ',\\"max\\":' + max + ',\\"c\\":' + center +',\\"i\\":' + inv + ',\\"d\\":' + dead + ',\\"e\\":' + exp + ',\\"l\\":' + lim + ',\\"f\\":' + func + '}';
+		}
+
+		cmd = cmd.replace('{list}', list);
+		sendStringCommand(cmd);
+	}
+
+
+	function SaveSbusParams(obj, id) {
+		var dev = $("#sbus_dev_option").val();
+		var cmd = '{"cmd":"rc","param":"set-sbus-config","value":"' + id + '","value2":"' + dev + '"}';
+		sendStringCommand(cmd);
+		$(obj).css('background-color','darkred');
+	}
+
+
+	function onTimer() {
+		RequestRC();
+	}
+
+	function RC_StartTimer() {
+		interval = setInterval(onTimer, 300);
+	}
+
+	function RC_StopTimer() {
+		clearInterval(interval);
+	}	
+
+</script>

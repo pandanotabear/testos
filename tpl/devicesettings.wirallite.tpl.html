@@ -1,0 +1,167 @@
+<p><span class="option_title"><input type="checkbox" id="wiral_enabled"><label for="wiral_enabled">Enable Wiral Lite control</label></span></p>
+
+<p class="option_title gray">Max speed <span id="max_speed_text" class="yellow"></span></p>
+<p><input id="max_speed_slider" class="option_el" type="range" min="0" max="255" step="1" value="0" style="width:80%;"></p>
+
+<p class="option_title gray">Default speed <span id="default_speed_text" class="yellow"></span></p>
+<p><input id="default_speed_slider" class="option_el" type="range" min="0" max="255" step="1" value="0" style="width:80%;"></p>
+
+<p class="option_title gray">Remote Bluetooth Address</p>
+<div><input type="text" id="remote_addr_textarea" style="width:200px; background-color:transparent; padding:5px; color:white; border-width:2px;"></div>
+
+<p><input id="remote_search_button" type="button" value="Search Wiral Lite remote" style="background-color:transparent; color:white; padding:10px; border-width:2px; width:200px;"></p>
+
+<p id="status_label" class="yellow"></p>
+
+<p id="info_label" class="option_title gray hidden">Only BT devices with name "Wiral Remote" will be shown in list. If remote is already connected it may not to be shown.<br>Click on string in list to add it into address field.</p>
+<div><select id="bt_devices_option" class="option_el hidden" style="width:200px; padding:5px;"></select></div>
+
+<p><input id="wiral_save_button" type="button" value="Save" style="background-color:red; color:white; padding:10px; border:0; width:100px;"></p>
+
+<p>&nbsp;</p>
+
+<p class="option_title gray">Wiral Lite status <span id="wiral_status" style="color:white;">Remote not connected</span></p>
+
+<div id="wiral_status_block" class="hidden">
+	<p class="option_title gray">Position <span id="wiral_position" style="color:yellow;">0</span></p>
+	<p class="option_title gray">Speed <span id="wiral_speed" style="color:yellow;">0</span></p>
+	<p><input id="wiral_position_slider" class="option_el" type="range" min="0" max="100" step="1" value="0" disabled style="width:80%;"></p>
+	<p><input id="wiral_set_position_slider" class="option_el" type="range" min="0" max="100" step="1" value="0" style="width:80%;"></p>
+</div>
+
+
+<script>
+	var max_distance = 0;
+
+	DeviceConfigInit();
+	ConfigRequest();
+
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"wirallite"}');
+	}
+
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		$('#max_speed_slider').on("mousemove change touchmove", function(e) {
+			$("#max_speed_text").html($(this).val());
+		});
+
+		$('#default_speed_slider').on("mousemove change touchmove", function(e) {
+			var maxspeed = parseInt($('#max_speed_slider').val());
+			var defspeed = parseInt($(this).val());
+			if (defspeed > maxspeed) {
+				defspeed = maxspeed;
+				$('#default_speed_slider').val(defspeed);
+			}
+
+			$("#default_speed_text").html(defspeed);
+		});
+
+		$('#remote_search_button').on("click", function(e) {
+			$("#status_label").html("Searching remote...");
+			$("#info_label").css("display", "none");
+			$("#bt_devices_option").css("display","none");
+			var cmd = '{"cmd":"updateconfig","param":"wirallite","value":"scan","value2":"","value3":"","value4":""}';
+			sendStringCommand(cmd);
+		});
+
+		$('#bt_devices_option').on("change", function(e) {
+			$("#remote_addr_textarea").val($(this).val());
+		});
+
+		$('#wiral_save_button').on("click", function(e) {
+			var enabled = $("#wiral_enabled").prop('checked') ? 1 : 0;
+			var maxspeed = parseInt($("#max_speed_slider").val());
+			var defspeed = parseInt($("#default_speed_slider").val());
+
+            if (defspeed > maxspeed) defspeed = maxspeed;
+
+			var addr = $("#remote_addr_textarea").val();
+			var cmd = '{"cmd":"updateconfig","param":"wirallite","value":"params","value2":"' + enabled + '","value3":"' + maxspeed + '","value4":"' + addr + '","value5":"' + defspeed + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+
+		$('#wiral_set_position_slider').on("change", function(e) {
+			var position = (parseInt($(this).val()) / 100.0) * max_distance;
+			var speed = parseInt($('#default_speed_slider').val());
+			try { WiralMove(position, speed); } catch (e) {}
+		});
+	}
+
+
+	function ParseDeviceConfig(json) {
+		var config;
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd == "config_answer") {
+			$("#wiral_enabled").prop("checked", config.enabled);
+			$("#max_speed_slider").val(config.maxspeed);
+			$("#max_speed_text").html(config.maxspeed);
+			$("#default_speed_slider").val(config.defspeed);
+			$("#default_speed_text").html(config.defspeed);
+			$("#remote_addr_textarea").val(config.addr);
+		}
+
+		if ((config.cmd == "wiralremote") && (config.param == "scan")) {
+			$("#status_label").html("");
+			$("#info_label").css("display", "block");
+
+			$("#bt_devices_option").empty();
+			$("#bt_devices_option").append($("<option></option>").attr("value", '').text(''));
+			var items = config.value.split(';');
+			for (var i = 0; i < items.length; i++) {
+				var item_parts = items[i].split(',');
+				if (item_parts[1] != "Wiral Remote") continue;
+				$("#bt_devices_option").append($("<option></option>").attr("value", item_parts[0]).text(item_parts[0]));
+			}
+			$("#bt_devices_option").css("display","block");
+		}
+	}
+
+
+	function HookWiralFound() {
+		//console.log('HookWiralFound');
+	}
+
+	function HookWiralLost() {
+		//console.log('HookWiralLost');
+		$('#wiral_status').html('Remote not connected');
+		$('#wiral_position').html('0');
+		$('#wiral_speed').html('0');
+		$('#wiral_status_block').css('display', 'none');
+	}
+
+	function HookWiralParse(wiralStatus) {
+		//console.log(wiralStatus);
+
+		max_distance = wiralStatus.max_distance;
+
+		var status_str = 'Remote not connected';
+		if (wiralStatus.remote_connected && !wiralStatus.mainunit_connected) status_str = 'Main unit not connected';
+		if (wiralStatus.remote_connected && wiralStatus.mainunit_connected) status_str = 'Main unit connected';
+		$('#wiral_status').html(status_str);
+
+		if (wiralStatus.remote_connected && wiralStatus.mainunit_connected) {
+			if ($('#wiral_status_block').css('display') != 'block') $('#wiral_status_block').css('display', 'block');
+		} else {
+			if ($('#wiral_status_block').css('display') != 'none') $('#wiral_status_block').css('display', 'none');
+		}
+
+
+		$('#wiral_position').html(wiralStatus.current_distance + ' / ' + wiralStatus.max_distance);
+		$('#wiral_speed').html(wiralStatus.current_speed);
+
+		$('#wiral_position_slider').val((wiralStatus.current_distance / wiralStatus.max_distance) * 100);
+	}
+
+</script>

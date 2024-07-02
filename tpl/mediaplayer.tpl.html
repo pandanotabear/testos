@@ -1,0 +1,70 @@
+<div id="mp_container"></div>
+
+<style>
+	.mp_files_block {
+		height:100%;
+		width:auto;
+		overflow-y:scroll;
+    	white-space:nowrap;
+	}
+
+	.mp_file_item {
+		display:block;
+		font-size:0.6em;
+		margin-bottom:20px;
+		cursor:hand;
+		padding:4px;
+	}
+
+	.mp_file_item:hover {
+		background:#fff;
+		color:black;
+	}
+
+</style>
+
+<script>
+	var previousJson;
+
+	function MP_Update() {
+		$.post("/loadmedia.php", {}, function(data) {
+
+			if (previousJson == data) return;
+			previousJson = data;
+
+			//alert('content updated');
+			$("#mp_container").html(MP_ParseList(data));
+		});
+	}
+
+
+	function MP_ParseList(data) {
+
+		var json;
+		try {
+			json = JSON.parse(data);
+		} catch (e) {
+			alert(e);
+			return '';
+		}
+
+		var content = '';
+
+		content = '<div class="mp_files_block">';
+
+		for (var i in json) {
+
+			var thumb_filename;
+			if (json[i].thumb == null) thumb_filename = "imgs/noimage.png"; else thumb_filename = json[i].path + '/' + json[i].thumb;
+
+			content += '<div class="mp_file_item"><div>' + json[i].basename + '</div><img src="' + thumb_filename + '" width="150" height="84" style="padding:2px;"></div>';
+
+			console.log(json[i]);
+		}
+
+		content += '</div>';
+
+		return content;
+	}
+
+</script>

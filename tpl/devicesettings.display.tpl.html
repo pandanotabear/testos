@@ -1,0 +1,608 @@
+<div class="tab">
+	<button class="tablinks active" onclick="openTab(event, 'VideoOutputTab')">Video output</button>
+	<button class="tablinks" onclick="openTab(event, 'InternalDisplayTab')">Main display</button>
+	<button class="tablinks" onclick="openTab(event, 'SecondDisplayTab')">Secondary display</button>
+	<button class="tablinks" onclick="openTab(event, 'DSIDisplayTab')">DSI display</button>
+	<button class="tablinks" onclick="openTab(event, 'ExternalDisplayTab')">SPI display</button>
+	<button class="tablinks" onclick="openTab(event, 'OsdTab')">OSD</button>
+	<button class="tablinks" onclick="openTab(event, 'TouchscreenTab')">Touchscreen</button>
+</div>
+
+<div id="VideoOutputTab" class="tabcontent" style="display:block;">
+
+	<p><span class="option_title"><input type="checkbox" id="display_enabled"><label for="display_enabled">Decode and show video stream from connected camera or any other video device</label></span></p>
+
+	<p><span class="option_title"><input type="checkbox" id="display_show_all"><label for="display_show_all">Use all video ports (HDMI-0 and HDMI-1 or HDMI-0 and DSI)</label></span></p>
+
+	<p>
+		<span class="option_title"><input type="checkbox" id="vflip_enabled"><label for="vflip_enabled">Vertical flip</label></span>
+		<br>
+		<span class="option_title"><input type="checkbox" id="hflip_enabled"><label for="hflip_enabled">Horizontal flip</label></span>
+	</p>
+
+	<p class="option_title gray" style="margin-top:20px;">Display custom rotation (overwrites vflip and hflip)</p>
+	<select id="display_rotation_option" class="option_el" style="width:250px; margin:5px;">
+		<option>No rotation</option>
+		<option>Mirror</option>
+		<option>Mirror 180</option>
+		<option>180</option>
+		<option>Mirror 90</option>
+		<option>270</option>
+		<option>90</option>
+		<option>Mirror 270</option>
+	</select>
+
+	<p>
+		<span class="option_title"><input type="checkbox" id="aspect_ratio_enabled"><label for="aspect_ratio_enabled">Keep aspect ratio</label></span>
+		<br>
+		<span class="option_title"><input type="checkbox" id="letterbox_enabled"><label for="letterbox_enabled">Letterbox format</label></span>
+		<br>
+		<span class="option_title"><input type="checkbox" id="smooth_enabled"><label for="smooth_enabled">Smooth video (possibly increased delay)</label></span>
+		<br>
+		<span class="option_title"><input type="checkbox" id="lastframe_enabled"><label for="lastframe_enabled">Show last frame when video stream lost</label></span>
+	</p>
+
+	<p>
+		Source video crop (x,y,w,h). Empty or 0,0,0,0 - no crop
+		<p><input type="text" id="display_crop" style="padding:5px;"></p>
+		<p>
+			<input id="crop_set_button" type="button" value="Set crop" style="background-color:lightgreen; color:black; padding:5px; border-width:1px; width:80px;">
+			<input id="crop_clear_button" type="button" value="Clear crop" style="background-color:lightgreen; color:black; padding:5px; border-width:1px; width:80px;">
+		</p>
+	</p>
+
+</div>
+
+
+<div id="InternalDisplayTab" class="tabcontent">
+
+	<p><span class="option_title">Current video mode</span></p>
+	<div id="current_video_mode"></div>
+
+	<p class="option_title gray" style="margin-top:20px;">Video output</p>
+	<select id="video_output_option" class="option_el" style="width:250px; margin:5px;">
+		<option>HDMI</option>
+		<option>CVBS</option>
+	</select>
+
+	<div id="group_hdmi" style="display:none;">
+		<p class="option_title gray" style="margin-top:20px;">HDMI mode</p>
+		<p><span class="option_title"><input type="checkbox" id="hdmi_show_all"><label for="hdmi_show_all">Show all modes (including incompatible)</label></span></p>
+		<p><select id="hdmi_mode_option" class="option_el" style="width:250px; margin:5px;"></select></p>
+		<p><input id="hdmimode_test_button" type="button" value="Test (without saving)" style="background-color:transparent; color:white; padding:10px; border-width:1px; width:150px;"></p>
+		<p><input id="hdmimode_save_button" type="button" value="Save" style="background-color:red; color:white; padding:10px; border:0; width:150px;"></p>
+	</div>
+
+	<div id="group_cvbs" style="display:none;">
+		<p class="option_title gray" style="margin-top:20px;">CVBS mode (composite output)</p>
+		<select id="cvbs_mode_option" class="option_el" style="width:250px; margin:5px;">
+			<option>PAL 4:3</option>
+			<option>PAL 14:9</option>
+			<option>PAL 16:9</option>
+			<option>NTSC 4:3</option>
+			<option>NTSC 14:9</option>
+			<option>NTSC 16:9</option>
+		</select>
+
+		<p><span class="option_title"><input type="checkbox" id="cvbs_progressive"><label for="cvbs_progressive">Progressive</label></span></p>
+
+		<p>
+			<input id="cvbsmode_test_button" type="button" value="Test" style="background-color:transparent; color:white; padding:10px; border-width:1px; width:100px;">
+			<input id="cvbsmode_save_button" type="button" value="Save" style="background-color:red; color:white; padding:10px; border:0; width:100px; margin-left:10px;">
+		</p>
+	</div>
+</div>
+
+
+<div id="SecondDisplayTab" class="tabcontent">
+	<p><span class="option_title"><input type="checkbox" id="second_display_enabled"><label for="second_display_enabled">Output video on HDMI-1 (RPI4 only)</label></span></p>
+</div>
+
+<div id="DSIDisplayTab" class="tabcontent">
+	<p><span class="option_title"><input type="checkbox" id="dsi_display_enabled"><label for="dsi_display_enabled">Output video on DSI display</label></span></p>
+	<p>&nbsp;</p>
+	<p class="red">After these options changes need to reboot the device!</p>
+	<p><span class="option_title"><input type="checkbox" id="dsi_display_flip"><label for="dsi_display_flip">DSI display vertical flip (works not with not all displays model)</label></span></p>
+	<p><span class="option_title"><input type="checkbox" id="dsi_display_ignore"><label for="dsi_display_ignore">Ignore DSI display</label></span></p>
+</div>
+
+
+<div id="ExternalDisplayTab" class="tabcontent">
+
+	<p><span class="option_title"><input type="checkbox" id="tft_display_enabled"><label for="tft_display_enabled">Show video on SPI display</label></span></p>
+
+	<p class="option_title gray" style="margin-top:20px;">SPI display model</p>
+	<select id="tft_model_option" class="option_el" style="width:250px; margin:5px;">
+		<option></option>
+		<option>Waveshare 2 inch</option>
+		<option>Waveshare 3.5 inch A</option>
+		<option>Waveshare 3.5 inch B</option>
+	</select>
+</div>
+
+
+<div id="OsdTab" class="tabcontent">
+
+	<p><span class="option_title"><input type="checkbox" id="osd_enabled"><label for="osd_enabled">OSD enable</label></span></p>
+	<p><span class="option_title"><input type="checkbox" id="osd_borders"><label for="osd_borders">OSD borders</label></span></p>
+	<p>&nbsp;</p>
+
+	<p><span class="option_title"><input type="checkbox" id="fov_frame_enabled"><label for="fov_frame_enabled">Show FOV frame</label></span></p>
+	<p><span class="option_title"><label for="fov_frame_h">Top/bottom offset</label><br><input type="text" id="fov_frame_h" style="margin-top:5px; padding:3px; width:130px;"></span></p>
+	<p><span class="option_title"><label for="fov_frame_w">Left/right offset</label><br><input type="text" id="fov_frame_w" style="margin-top:5px; padding:3px; width:130px;"></span></p>
+	<p><span class="option_title"><label for="fov_frame_opacity">Opacity (0-100)</label><br><input type="text" id="fov_frame_opacity" style="margin-top:5px; padding:3px; width:130px;"></span></p>
+	<p><input id="fov_frame_set_button" type="button" value="Set" style="background-color:lightgreen; color:black; padding:10px; border-width:1px; width:130px;"></p>
+</div>
+
+
+<div id="TouchscreenTab" class="tabcontent">
+
+	<p><span class="option_title"><input type="checkbox" id="touchscreen_enabled"><label for="touchscreen_enabled">Enable touchscreen</label></span></p>
+
+	<p class="option_title gray" style="margin-top:20px;">Touchscreen device ID</p>
+	<select id="touchscreen_device_id_option" class="option_el" style="width:50px; margin:5px;">
+		<option>0</option>
+		<option>1</option>
+		<option>2</option>
+		<option>3</option>
+	</select>
+</div>
+
+
+<script>
+	var display_saved_config;
+
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"display"}');
+	}
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		$("#video_output_option").on("change", function(e) {
+			if ($(this).val() == "HDMI") {
+				$("#group_cvbs").css("display","none");
+				$("#group_hdmi").css("display","block");
+			}
+			if ($(this).val() == "CVBS") {
+				$("#group_hdmi").css("display","none");
+				$("#group_cvbs").css("display","block");
+			}
+		});
+
+		$("#second_display_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"dualhdmi","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#dsi_display_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"dsidisplay","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#dsi_display_flip").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"dsidisplay","value2":"flip","value3":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#dsi_display_ignore").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"dsidisplay","value2":"ignore","value3":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#display_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"enabled","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#display_show_all").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"showall","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#vflip_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"vflip","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+		$("#hflip_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"hflip","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$('#display_rotation_option').on("change", function(e) {
+			var id = $(this).prop('selectedIndex');
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"rotate","value2":"' + id + '"}';
+			sendStringCommand(cmd);
+		});
+
+
+		$("#aspect_ratio_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"aspect_ratio","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+		$("#letterbox_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"letterbox","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+		$("#smooth_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"smooth","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+		$("#lastframe_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"showlastframe","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#crop_set_button").on("click", function(e) {
+			var val = $("#display_crop").val();
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"crop","value2":"' + val + '"}';
+			sendStringCommand(cmd);
+		});
+		$("#crop_clear_button").on("click", function(e) {
+			$("#display_crop").val('0,0,0,0');
+			var val = $("#display_crop").val();
+			var cmd = '{"cmd":"updateconfig","param":"display","value":"crop","value2":"' + val + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#osd_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"osd","value":"enabled","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+		$("#osd_borders").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"osd","value":"borders","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#fov_frame_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"osd","value":"fov_frame_show","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#fov_frame_set_button").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"osd","value":"fov_frame_size","value2":"' + $("#fov_frame_h").val() + '","value3":"' + $("#fov_frame_w").val() + '","value4":"' + $("#fov_frame_opacity").val() + '"}';
+			sendStringCommand(cmd);
+		});
+
+
+		$("#tft_display_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"tft_display","value":"enabled","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$('#tft_model_option').on("change", function(e) {
+			var id = $(this).prop('selectedIndex');
+			var cmd = '{"cmd":"updateconfig","param":"tft_display","value":"model","value2":"' + id + '"}';
+			sendStringCommand(cmd);
+		});
+
+
+
+		$("#hdmimode_test_button").on("click", function(e) {
+			var cur_mode = $("#hdmi_mode_option").val();
+			try {
+				var tmp = cur_mode.split(':');
+				tmp = tmp[0].split(' ');
+				var family = tmp[0];
+				var code = tmp[2];
+				if (cur_mode == "default") { family = ""; code = ""; }
+				var cmd = '{"cmd":"updateconfig","param":"hdmi","value":"test","value2":"' + family + '","value3":"' + code + '"}';
+				sendStringCommand(cmd);
+			} catch (e) {}
+		});
+		$("#hdmimode_save_button").on("click", function(e) {
+			if (!confirm("Are you sure?")) return;
+			var cur_mode = $("#hdmi_mode_option").val();
+			try {
+				var tmp = cur_mode.split(':');
+				tmp = tmp[0].split(' ');
+				var family = tmp[0];
+				var code = tmp[2];
+				if (cur_mode == "default") { family = ""; code = ""; }
+				var cmd = '{"cmd":"updateconfig","param":"hdmi","value":"testandsave","value2":"' + family + '","value3":"' + code + '"}';
+				sendStringCommand(cmd);
+			} catch (e) {}
+		});
+
+		$("#cvbsmode_test_button").on("click", function(e) {
+			var cur_mode = $("#cvbs_mode_option").val();
+			try {
+				var tmp = cur_mode.split(' ');
+				var family = tmp[0];
+				var aspect = tmp[1];
+				var progressive = $("#cvbs_progressive").prop("checked") ? 'P' : '';
+				var cmd = '{"cmd":"updateconfig","param":"cvbs","value":"test","value2":"' + family + '","value3":"' + aspect + '","value4":"' + progressive + '"}';
+				sendStringCommand(cmd);
+			} catch (e) {}
+		});
+		$("#cvbsmode_save_button").on("click", function(e) {
+			if (!confirm("Are you sure?")) return;
+			var cur_mode = $("#cvbs_mode_option").val();
+			try {
+				var tmp = cur_mode.split(' ');
+				var family = tmp[0];
+				var aspect = tmp[1];
+				var progressive = $("#cvbs_progressive").prop("checked") ? 'P' : '';
+				var cmd = '{"cmd":"updateconfig","param":"cvbs","value":"testandsave","value2":"' + family + '","value3":"' + aspect + '","value4":"' + progressive + '"}';
+				sendStringCommand(cmd);
+			} catch (e) {}
+		});
+
+
+		$("#touchscreen_enabled").on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"touchscreen","value":"enabled","value2":"' + ($(this).prop('checked') ? 1 : 0) + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#touchscreen_device_id_option").on("change", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"touchscreen","value":"device_id","value2":"' + $(this).val() + '"}';
+			sendStringCommand(cmd);
+		});
+
+		$("#hdmi_show_all").on("change", function(e) {
+			var state = $(this).prop('checked');
+			FillHDMIModes(display_saved_config.family, display_saved_config.code, display_saved_config.cea_modes, display_saved_config.dmt_modes, state);
+		});
+	}
+
+
+	function ParseDeviceConfig(json) {
+		//alert(json);
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		display_saved_config = config;
+
+		$("#display_enabled").prop("checked", config.enabled);
+		$("#display_show_all").prop("checked", config.all);
+		$("#vflip_enabled").prop("checked", config.vflip);
+		$("#hflip_enabled").prop("checked", config.hflip);
+		$("#display_rotation_option").prop("selectedIndex", config.rot);
+		$("#aspect_ratio_enabled").prop("checked", config.daspect == "1");
+		$("#letterbox_enabled").prop("checked", config.dletter == "1");
+		$("#smooth_enabled").prop("checked", config.dsmooth == "1");
+		$("#lastframe_enabled").prop("checked", config.lastframe == "1");
+		$("#display_crop").val(config.dcrop);
+		$("#osd_enabled").prop("checked", config.osd == "1");
+		$("#osd_borders").prop("checked", config.osd_borders == "1");
+
+		$("#fov_frame_enabled").prop("checked", config.fov_en == "1");
+		$("#fov_frame_h").val(config.fov_h);
+		$("#fov_frame_w").val(config.fov_w);
+		$("#fov_frame_opacity").val(config.fov_o);
+
+		$("#tft_display_enabled").prop("checked", config.tft_dsp == "1");
+		$("#tft_model_option").prop("selectedIndex", config.tft_model);
+		$("#second_display_enabled").prop("checked", config.dualhdmi == "1");
+		$("#dsi_display_enabled").prop("checked", config.dsi_disp == "1");
+		$("#dsi_display_flip").prop("checked", config.dsi_fl == "1");
+		$("#dsi_display_ignore").prop("checked", config.dsi_ign == "1");
+
+		$("#video_output_option").val(config.output).change();
+
+		$("#touchscreen_enabled").prop("checked", config.ts_en == "1");
+		$("#touchscreen_device_id_option").val(config.ts_id);
+
+		if (config.output == "HDMI") {
+			$("#current_video_mode").html(config.output + ' ' + config.size + '@' + config.rate + config.scan + ' (' + config.family + ' ' + config.aspect + ' mode ' + config.code + ')');
+		}
+
+		if (config.output == "CVBS") {
+			$("#current_video_mode").html(config.output + ' ' + config.size + '@' + config.rate + config.scan + ' (' + config.family + ' ' + config.aspect + ')');
+
+			/// Select current mode
+			var cur_mode_str = config.family + ' ' + config.aspect;
+			$("#cvbs_mode_option").val(cur_mode_str);
+
+			$("#cvbs_progressive").prop("checked", config.scan == 'p');
+		}
+
+		FillHDMIModes(config.family, config.code, config.cea_modes, config.dmt_modes, false);
+	}
+
+
+	function FillHDMIModes(current_family, current_mode, cea_modes, dmt_modes, show_all) {
+		$('#hdmi_mode_option').empty();
+		$('#hdmi_mode_option').append($("<option></option>").attr("value", 'default').text('default'));
+
+		for (var i = 1; i < hdmi_cea_modes_list.length; i++) {
+			var found = false;
+			if (!show_all) {
+				for (var n = 0; n < cea_modes.length; n++) {
+					if (cea_modes[n] == i) { found = true; break; }
+				}
+				if (!found) continue;
+			}
+			var text = 'CEA mode ' + i + ': ' + hdmi_cea_modes_list[i];
+			$('#hdmi_mode_option').append($("<option></option>").attr("value", text).text(text));
+		}
+
+		for (var i = 1; i < hdmi_dmt_modes_list.length; i++) {
+			var found = false;
+			if (!show_all) {
+				for (var n = 0; n < dmt_modes.length; n++) {
+					if (dmt_modes[n] == i) { found = true; break; }
+				}
+				if (!found) continue;
+			}
+			var text = 'DMT mode ' + i + ': ' + hdmi_dmt_modes_list[i];
+			$('#hdmi_mode_option').append($("<option></option>").attr("value", text).text(text));
+		}
+
+
+		/// Select current mode
+		var cur_mode_str = current_family + ' mode ' + current_mode + ':';
+		$("#hdmi_mode_option > option").each(function() {
+			//console.log(this.text + ' ' + this.value);
+			if (this.text.indexOf(cur_mode_str) != -1) {
+				$(this).prop('selected', true);
+			}
+		});
+	}
+
+	var hdmi_cea_modes_list = [
+		"", // empty
+		"640x480@60p 4:3", // 1
+		"720x480@60p 4:3", // 2
+		"720x480@60p 16:9", // 3
+		"1280x720@60p 16:9", // 4
+		"1920x1080@60i 16:9", // 5
+		"720x480@60i 4:3 x2", // 6
+		"720x480@60i 16:9 x2", // 7
+		"720x240@60p 4:3 x2", // 8
+		"720x240@60p 16:9 x2", // 9
+		"720x480@60i 4:3 x4", // 10
+		"720x480@60i 16:9 x4", // 11
+		"720x240@60p 4:3 x4", // 12
+		"720x240@60p 16:9 x4", // 13
+		"720x480@60p 4:3 x2", // 14
+		"720x480@60p 16:9 x2", // 15
+		"1920x1080@60p 16:9", // 16
+		"720x576@50p 4:3", // 17
+		"720x576@50p 16:9", // 18
+		"1280x720@50p 16:9", // 19
+		"1920x1080@50i 16:9", // 20
+		"720x576@50i 4:3 x2", // 21
+		"720x576@50i 16:9 x2", // 22
+		"720x288@50p 4:3 x2", // 23
+		"720x288@50p 16:9 x2", // 24
+		"720x576@50i 4:3 x4", // 25
+		"720x576@50i 16:9 x4", // 26
+		"720x288@50p 4:3 x4", // 27
+		"720x288@50p 16:9 x4", // 28
+		"720x576@50p 4:3 x2", // 29
+		"720x576@50p 16:9 x2", // 30
+		"1920x1080@50p 16:9", // 31
+		"1920x1080@24p 16:9", // 32
+		"1920x1080@25p 16:9", // 33
+		"1920x1080@30p 16:9", // 34
+		"720x480@60p 4:3 x4", // 35
+		"720x480@60p 16:9 x4", // 36
+		"720x576@50p 4:3 x4", // 37
+		"720x576@50p 16:9 x4", // 38
+		"1920x1080@50i 16:9", // 39
+		"1920x1080@100i 16:9", // 40
+		"1280x720@100p 16:9", // 41
+		"720x576@100p 4:3", // 42
+		"720x576@100p 16:9", // 43
+		"720x576@100i 4:3 x2", // 44
+		"720x576@100i 16:9 x2", // 45
+		"1920x1080@120i 16:9", // 46
+		"1280x720@120p 16:9", // 47
+		"720x480@120p 4:3", // 48
+		"720x480@120p 16:9", // 49
+		"720x480@120i 4:3 x2", // 50
+		"720x480@120i 16:9 x2", // 51
+		"720x576@200p 4:3", // 52
+		"720x576@200p 16:9", // 53
+		"720x576@200i 4:3 x2", // 54
+		"720x576@200i 16:9 x2", // 55
+		"720x480@240p 4:3", // 56
+		"720x480@240p 16:9", // 57
+		"720x480@240i 4:3 x2", // 58
+		"720x480@240i 16:9 x2", // 59
+		"1280x720@24p 16:9", // 60
+	]
+
+	var hdmi_dmt_modes_list = [
+		"", // empty
+		"640x350@85p", // 1
+		"640x400@85p 16:10", // 2
+		"720x400@85p", // 3
+		"640x480@60p 4:3", // 4
+		"640x480@72p 4:3", // 5
+		"640x480@75p 4:3", // 6
+		"640x480@85p 4:3", // 7
+		"800x600@56p 4:3", // 8
+		"800x600@60p 4:3", // 9
+		"800x600@72p 4:3", // 10
+		"800x600@75p 4:3", // 11
+		"800x600@85p 4:3", // 12
+		"800x600@120p 4:3", // 13
+		"848x480@60p 16:9", // 14
+		"1024x768@43i 4:3", // 15
+		"1024x768@60p 4:3", // 16
+		"1024x768@70p 4:3", // 17
+		"1024x768@75p 4:3", // 18
+		"1024x768@85p 4:3", // 19
+		"1024x768@120p 4:3", // 20
+		"1152x864@75p 4:3", // 21
+		"1280x768@60p 15:9", // 22  (reduced blanking)
+		"1280x768@60p 15:9", // 23
+		"1280x768@75p 15:9", // 24
+		"1280x768@85p 15:9", // 25
+		"1280x768@120p 15:9", // 26 (reduced blanking)
+		"1280x800@60p 16:10", // 27 (reduced blanking)
+		"1280x800@60p 16:10", // 28
+		"1280x800@75p 16:10", // 29
+		"1280x800@85p 16:10", // 30
+		"1280x800@120p 16:10", // 31
+		"1280x960@60p 4:3", // 32
+		"1280x960@85p 4:3", // 33
+		"1280x960@120p 4:3", // 34
+		"1280x1024@60p 5:4", // 35
+		"1280x1024@75p 5:4", // 36
+		"1280x1024@85p 5:4", // 37
+		"1280x1024@120p 5:4", // 38
+		"1360x768@60p 16:9", // 39
+		"1360x768@120p 16:9", // 40
+		"1400x1050@60p 4:3", // 41 (reduced blanking)
+		"1400x1050@60p 4:3", // 42
+		"1400x1050@75p 4:3", // 43
+		"1400x1050@85p 4:3", // 44
+		"1400x1050@120p 4:3", // 45 (reduced blanking)
+		"1440x900@60p 16:10", // 46 (reduced blanking)
+		"1440x900@60p 16:10", // 47
+		"1440x900@75p 16:10", // 48
+		"1440x900@85p 16:10", // 49
+		"1440x900@120p 16:10", // 50
+		"1600x1200@60p 4:3", // 51
+		"1600x1200@65p 4:3", // 52
+		"1600x1200@70p 4:3", // 53
+		"1600x1200@75p 4:3", // 54
+		"1600x1200@85p 4:3", // 55
+		"1600x1200@120p 4:3", // 56 (reduced blanking)
+		"1680x1050@60p 16:10", // 57 (reduced blanking)
+		"1680x1050@60p 16:10", // 58
+		"1680x1050@75p 16:10", // 59
+		"1680x1050@85p 16:10", // 60
+		"1680x1050@120p 16:10", // 61
+		"1792x1344@60p 4:3", // 62
+		"1792x1344@75p 4:3", // 63
+		"1792x1344@120p 4:3", // 64
+		"1856x1392@60p 4:3", // 65
+		"1856x1392@75p 4:3", // 66
+		"1856x1392@120p 4:3", // 67 (reduced blanking)
+		"1920x1200@60p 16:10", // 68 (reduced blanking)
+		"1920x1200@60p 16:10", // 69
+		"1920x1200@75p 16:10", // 70
+		"1920x1200@85p 16:10", // 71
+		"1920x1200@120p 16:10", // 72
+		"1920x1440@60p 4:3", // 73
+		"1920x1440@75p 4:3", // 74
+		"1920x1440@120p 4:3", // 75 (reduced blanking)
+		"2560x1600@60p 16:10", // 76 (reduced blanking)
+		"2560x1600@60p 16:10", // 77
+		"2560x1600@75p 16:10", // 78
+		"2560x1600@85p 16:10", // 79
+		"2560x1600@120p 16:10", // 80
+		"1366x768@60p 16:9", // 81
+		"1920x1080@60p 16:9", // 82
+		"1600x900@60p 16:9", // 83
+		"2048x1152@60p 16:9", // 84
+		"1280x720@60p 16:9", // 85
+		"1366x768@60p 16:9", // 86
+	]
+</script>

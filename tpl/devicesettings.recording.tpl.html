@@ -1,0 +1,186 @@
+<div class="tab">
+	<button class="tablinks active" onclick="openTab(event, 'RecStorageTab')">Storage</button>
+	<button class="tablinks" onclick="openTab(event, 'RecButtonsTab')">Buttons</button>
+</div>
+
+
+<div id="RecStorageTab" class="tabcontent" style="display:block;">
+
+	<p class="option_title" style="margin-top:10px;">Show icon on</p>
+	<select id="recording_icon" class="option_el" style="width:250px; margin:5px;">
+		<option>none</option>
+		<option>default</option>
+		<option>DSI</option>
+		<option>HDMI-0</option>
+		<option>HDMI-1</option>
+	</select>
+
+	<p class="option_title" style="margin-top:10px;">Storage</p>
+	<select id="recording_storage" class="option_el" style="width:250px; margin:5px;">
+		<option>Auto</option>
+		<option>MicroSD</option>
+		<option>USB flash drive</option>
+		<option>DJI FPV Goggles MicroSD</option>
+	</select>
+
+	<p class="option_title" style="margin-top:10px;">Split video files, minutes</p>
+	<select id="recording_split" class="option_el" style="width:250px; margin:5px;">
+		<option></option>
+		<option>1</option>
+		<option>2</option>
+		<option>3</option>
+		<option>4</option>
+		<option>5</option>
+		<option>6</option>
+		<option>7</option>
+		<option>8</option>
+		<option>9</option>
+		<option>10</option>
+		<option>15</option>
+		<option>20</option>
+		<option>30</option>
+	</select>
+
+	<p><span class="option_title"><input type="checkbox" id="experimental_recorder"><label for="experimental_recorder">Experimental recording into .TS file (allows audio)</label></span></p>
+
+	<p><span class="option_title"><input type="checkbox" id="post_convert"><label for="post_convert">Convert video file after recording stopped</label></span></p>
+	<p><span style="color:gray;">MP4 - for usual, MKV - better for 3D SBS mode, with stereo fix for Youtube</p>
+	<select id="convert_format" class="option_el" style="width:250px; margin:5px;">
+		<option>mp4</option>
+		<option>mkv</option>
+	</select>
+
+	<p><span class="option_title"><input type="checkbox" id="make_thumb"><label for="make_thumb">Make JPG thumbnails</label></span></p>
+
+	<p><span style="color:gray;">MicroSD free space <span id="storage0_freespace" style="color:white;"></span></p>
+	<p><span style="color:gray;">USB flash drive free space</span> <span id="storage1_freespace" style="color:white;"></span></p>
+	<p><span style="color:gray;">DJI FPV Goggles MicroSD free space</span> <span id="storage2_freespace" style="color:white;"></span></p>
+
+	<!--<p>
+		<input id="recording_start_button" type="button" value="Start" style="background-color:red; color:white; padding:10px; border:0; width:100px;">
+		&nbsp;&nbsp;&nbsp;
+		<input id="recording_stop_button" type="button" value="Stop" style="background-color:gray; color:white; padding:10px; border:0; width:100px;">
+	</p>-->
+
+</div>
+
+
+<div id="RecButtonsTab" class="tabcontent">
+
+	<p class="option_title" style="margin-top:10px;">Use GPIO as trigger for recording start/stop (recording is active while GPIO is Low)</p>
+	<select id="rec_trigger_gpio" class="option_el" style="width:70px; margin:5px;">
+		<option></option>
+		<option>5</option>
+		<option>6</option>
+		<option>12</option>
+		<option>13</option>
+		<option>16</option>
+		<option>19</option>
+		<option>20</option>
+		<option>21</option>
+		<option>26</option>
+	</select>
+
+	<p class="option_title" style="margin-top:10px;">Use GPIO as button for recording start/stop (recording state toggles when GPIO is Low)</p>
+	<select id="rec_button_gpio" class="option_el" style="width:70px; margin:5px;">
+		<option></option>
+		<option>5</option>
+		<option>6</option>
+		<option>12</option>
+		<option>13</option>
+		<option>16</option>
+		<option>19</option>
+		<option>20</option>
+		<option>21</option>
+		<option>26</option>
+	</select>
+
+	<p class="option_title" style="margin-top:10px;">Use GPIO as button for photo shot</p>
+	<select id="shot_button_gpio" class="option_el" style="width:70px; margin:5px;">
+		<option></option>
+		<option>5</option>
+		<option>6</option>
+		<option>12</option>
+		<option>13</option>
+		<option>16</option>
+		<option>19</option>
+		<option>20</option>
+		<option>21</option>
+		<option>26</option>
+	</select>
+
+</div>
+
+<p><input id="recording_save_button" type="button" value="Save" style="background-color:red; color:white; padding:10px; border:0; width:100px;"></p>
+
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"recording"}');
+	}
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		$('#recording_save_button').on("click", function(e) {
+			var storage = $("#recording_storage").prop('selectedIndex');
+			var split_str = $("#recording_split").val();
+			var rec_trig_gpio = $("#rec_trigger_gpio").val();
+			var rec_btn_gpio = $("#rec_button_gpio").val();
+			var shot_gpio = $("#shot_button_gpio").val();
+			var post_convert = $("#post_convert").prop('checked') ? "1" : "0";
+			var convert_format = $("#convert_format").val();
+			var make_thumb = $("#make_thumb").prop('checked') ? "1" : "0";
+			var exp_rec = $("#experimental_recorder").prop('checked') ? "1" : "0";
+			var icon = $("#recording_icon").val();
+			var cmd = '{"cmd":"updateconfig","param":"recording","value":"","value2":"' + storage + '","value3":"' + rec_trig_gpio + '","value4":"' + rec_btn_gpio + '","value5":"' + shot_gpio + '","value6":"' + split_str + '","value7":"' + post_convert + '","value8":"' + make_thumb + '","value9":"' + exp_rec + '","value10":"' + convert_format + '","value11":"' + icon + '"}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$('#recording_start_button').on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"rec","value":"1","value2":"","value3":"","value4":""}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+		$('#recording_stop_button').on("click", function(e) {
+			var cmd = '{"cmd":"updateconfig","param":"rec","value":"0","value2":"","value3":"","value4":""}';
+			sendStringCommand(cmd);
+			$(this).css('background-color','darkred');
+		});
+
+	}
+
+	function ParseDeviceConfig(json) {
+		//alert(json);
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		$("#recording_split").val(parseInt(config.split));
+		$("#recording_storage").prop("selectedIndex", parseInt(config.place));
+		$("#storage0_freespace").html((parseInt(config.free0)/1000.0).toFixed(1) + " GB");
+		$("#storage1_freespace").html((parseInt(config.free1)/1000.0).toFixed(1) + " GB");
+		$("#storage2_freespace").html((parseInt(config.free2)/1000.0).toFixed(1) + " GB");
+		$("#rec_trigger_gpio").val(parseInt(config.gpio));
+		$("#rec_button_gpio").val(parseInt(config.gpio2));
+		$("#shot_button_gpio").val(parseInt(config.gpio3));
+		$("#post_convert").prop('checked', config.conv == "1");
+		$("#convert_format").val(config.fconv);
+		$("#make_thumb").prop('checked', config.thumb == "1");
+		$("#experimental_recorder").prop('checked', config.exp == "1");
+		$("#recording_icon").val(config.icon);
+	}
+</script>

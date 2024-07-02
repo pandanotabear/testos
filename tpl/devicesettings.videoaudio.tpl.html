@@ -1,0 +1,183 @@
+<div class="tab">
+	<button class="tablinks active" onclick="openTab(event, 'AudioTab')">Audio</button>
+	<button class="tablinks hideforstereopi" onclick="openTab(event, 'VideoTab')">Video</button>
+</div>
+
+<div id="VideoTab" class="tabcontent hideforstereopi">
+	<!--<p><span class="option_title"><input type="checkbox" id="video_transcoding_experimental_enabled"><label for="video_transcoding_experimental_enabled">Use experimental video transcoder</label></span></p>-->
+
+	<p><span class="option_title"><input type="checkbox" id="video_transcoding_enabled"><label for="video_transcoding_enabled">Transcoding enabled</label></span></p>
+
+	<p class="option_title gray">Bitrate</p>
+	<select id="video_bitrate_option" class="option_el" style="width:250px; margin:5px;">
+		<option>100 kbit/s</option>
+		<option>300 kbit/s</option>
+		<option>500 kbit/s</option>
+		<option>700 kbit/s</option>
+		<option>1000 kbit/s</option>
+		<option>1500 kbit/s</option>
+		<option>2000 kbit/s</option>
+		<option>2500 kbit/s</option>
+		<option>3000 kbit/s</option>
+		<option>3500 kbit/s</option>
+		<option>4000 kbit/s</option>
+		<option>4500 kbit/s</option>
+		<option>5000 kbit/s</option>
+		<option>5500 kbit/s</option>
+		<option>6000 kbit/s</option>
+		<option>6500 kbit/s</option>
+		<option>7000 kbit/s</option>
+	</select>
+
+	<p><span class="option_title"><input type="checkbox" id="video_resize_enabled"><label for="video_resize_enabled">Video resize</label></span></p>
+
+	<p class="option_title gray">Resolution</p>
+	<select id="video_resize_option" class="option_el" style="width:250px; margin:5px;">
+		<option>320x200</option>
+		<option>320x240</option>
+		<option>640x360</option>
+		<option>640x480</option>
+		<option>720x480</option>
+		<option>1280x720</option>
+	</select>
+
+	<p><span class="option_title"><input type="checkbox" id="video_fps_enabled"><label for="video_fps_enabled">Change FPS</label></span></p>
+
+	<p class="option_title gray">New FPS</p>
+	<select id="video_fps_option" class="option_el" style="width:250px; margin:5px;">
+		<option>5</option>
+		<option>10</option>
+		<option>15</option>
+		<option>20</option>
+		<option>25</option>
+		<option>30</option>
+	</select>
+
+	<div><input id="video_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"></div>
+</div>
+
+<div id="AudioTab" class="tabcontent active" style="display:block;" >
+
+	<div style="background-color:red; color:white; padding:10px; margin-top:10px;">Only USB audio capture supported</div>
+
+	<p><span class="option_title"><input type="checkbox" id="audio_engine_enabled"><label for="audio_engine_enabled">Enable Audio Engine</label></span></p>
+
+	<p><span class="option_title"><input type="checkbox" id="audio_enabled"><label for="audio_enabled">Use audio capture</label></span></p>
+
+	<p class="option_title gray" style="margin-top:10px;">Destination</p>
+	<select id="audio_dst_option" class="option_el" style="width:250px; margin:5px;">
+		<option>None</option>
+		<option>HDMI</option>
+		<option>TV-out</option>
+	</select>
+
+	<p><span class="option_title"><input type="checkbox" id="audio_autogain_enabled"><label for="audio_autogain_enabled">Use auto gain if supported</label></span></p>
+
+	<p class="option_title gray" style="margin-top:10px;">Audio capture volume <span id="audio_volume_value"></span></p>
+	<p><input id="audio_volume_slider" class="option_el" type="range" min="0" max="100" step="1" value="0" style="width:100%;"></p>
+
+	<hr>
+	<p><span class="option_title"><input type="checkbox" id="audio_stub_enabled"><label for="audio_stub_enabled">Use looped background audio file when no live capture</label></span></p>
+
+	<p class="option_title gray">Audio file name (full path .mp3 file, example: /mnt/bgaudio.mp3)</p>
+	<div><input type="text" id="audio_stub_filename" style="width:100%; background-color:transparent; padding:5px; color:white;"></div>
+
+	<div><input id="audio_save_button" type="button" value="Save" style="width:100px; padding:10px; background-color:red; color:white; border:0; margin-top:20px;"></div>
+</div>
+
+
+
+<script>
+	DeviceConfigInit();
+	ConfigRequest();
+
+	function ConfigRequest() {
+		sendStringCommand('{"cmd":"config_request","param":"video"}');
+	}
+
+	function DeviceConfigInit() {
+		/// Fill default values
+
+		$('.option_el').on("change", function(e) {
+			switch ($(this).attr('id')) {
+				case "audio_volume_slider": $("#audio_volume_value").html($(this).val() + '%'); break;
+			}
+		});
+
+		$("#video_save_button").on("click", function(e) {
+
+			var transcoding_enabled = $("#video_transcoding_enabled").prop("checked") ? 1 : 0;
+			var transcoding_bitrate = parseInt($("#video_bitrate_option").val().replace(' kbit/s', '')) * 1000;
+			var resize_enabled = $("#video_resize_enabled").prop("checked") ? 1 : 0;
+
+			var video_fps_enabled = $("#video_fps_enabled").prop("checked") ? 1 : 0;
+			var video_fps = parseInt($("#video_fps_option").val());
+			//var transcoder_experimental = $("#video_transcoding_experimental_enabled").prop('checked') ? 1 : 0;
+			var transcoder_experimental = 0;
+
+			var resize_width = "";
+			var resize_height = "";
+
+			try {
+				var resize_arr = $("#video_resize_option").val().split('x');
+				resize_width = resize_arr[0];
+				resize_height = resize_arr[1];
+			} catch (e) {}
+
+			var cmd = '{"cmd":"updateconfig","param":"transcoding","value":"' + transcoding_enabled + '","value2":"' + transcoding_bitrate + '","value3":"' + resize_enabled + '","value4":"' + resize_width + '","value5":"' + resize_height + '","value6":"' + video_fps_enabled + '","value7":"' + video_fps + '","value8":"' + transcoder_experimental + '"}';
+			sendStringCommand(cmd);
+
+			$(this).css('background-color','darkred');
+		});
+
+		$("#audio_save_button").on("click", function(e) {
+
+			var audio_engine_enabled = $("#audio_engine_enabled").prop("checked") ? 1 : 0;
+			var audio_enabled = $("#audio_enabled").prop("checked") ? 1 : 0;
+			var audio_dst = $("#audio_dst_option").prop('selectedIndex');
+			var autogain_enabled = $("#audio_autogain_enabled").prop("checked") ? 1 : 0;
+			var audio_volume = $("#audio_volume_slider").val();
+			var audio_stub_enabled = $("#audio_stub_enabled").prop("checked") ? 1 : 0;
+			var audio_stub_filename = $("#audio_stub_filename").val();
+
+			var cmd = '{"cmd":"updateconfig","param":"audio","value":"' + audio_enabled + '","value2":"","value3":"' + audio_dst + '","value4":"' + autogain_enabled + '","value5":"' + audio_volume + '","value6":"' + audio_stub_enabled + '","value7":"' + audio_stub_filename + '","value8":"' + audio_engine_enabled + '"}';
+			sendStringCommand(cmd);
+
+			$(this).css('background-color','darkred');
+		});
+	}
+
+	function ParseDeviceConfig(json) {
+		//alert(json);
+
+		var config;
+
+		try {
+			config = JSON.parse(json);
+		} catch (e) {
+			alert(e);
+			return;
+		}
+
+		if (config.cmd != "config_answer") return;
+
+		//$("#video_transcoding_experimental_enabled").prop('checked', config.transcoding_experimental);
+		$("#video_fps_enabled").prop('checked', config.transcoding_fps_enabled);
+		$("#video_fps_option").val(config.transcoding_fps);
+
+		$("#video_transcoding_enabled").prop('checked', config.transcoding_enabled);
+		$("#video_bitrate_option").val((parseInt(config.transcoding_bitrate) / 1000) + ' kbit/s');
+
+		$("#video_resize_enabled").prop('checked', config.resize_enabled);
+		$("#video_resize_option").val(config.resize_width + 'x' + config.resize_height);
+
+		$("#audio_engine_enabled").prop('checked', config.audio_engine_enabled);
+		$("#audio_enabled").prop('checked', config.audio_enabled);
+		$("#audio_dst_option").prop('selectedIndex', config.audio_dst);
+		$("#audio_autogain_enabled").prop('checked', config.autogain_enabled);
+		$("#audio_volume_slider").val(config.audio_volume);
+		$("#audio_volume_value").html(config.audio_volume + "%");
+		$("#audio_stub_enabled").prop('checked', config.audio_stub_enabled);
+		$("#audio_stub_filename").val(config.audio_stub_filename);
+	}
+</script>
